@@ -1,3 +1,5 @@
+# Provides ANSI styling for strings
+
 class Ansi:
     _styles = {
         "normal"    : "\033[0",

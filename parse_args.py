@@ -1,6 +1,6 @@
-# This program parses valid arguments for the main program to process by writing them to ryzenm-limit.conf
+# This program parses valid arguments for the daemon to process by writing them to ryzenm-limit.conf
 
-import argparse, sys, os
+import argparse, sys, os, fcntl
 from ansi import Ansi
 
 
@@ -31,6 +31,8 @@ class ParseArgs(argparse.ArgumentParser):
 
         if len(sys.argv) == 1:  # Print help page if no arguments are provided
             self.print_help()
+        elif self.args.info:
+            self.__print_info()
         else:
             self.__power_args_exclusion()
             self.__write_to_config()
@@ -132,7 +134,11 @@ class ParseArgs(argparse.ArgumentParser):
             )
 
     def __write_to_config(self):
-        RuntimeCheck.read_config()
+        try:
+            RuntimeCheck.read_config()
+        except:
+            print(Ansi.style_str("Config file not found", "red", "bold"))
+            sys.exit(1)
 
         if self.args.temp_limit is not None:
             print(f"Setting CPU temperature limit to {self.args.temp_limit}°C")
@@ -167,17 +173,40 @@ class ParseArgs(argparse.ArgumentParser):
         if not self.daemon_is_active:
             print(Ansi.style_str("Please enable daemon to apply settings", "red", "bold"))
 
+    def __print_info(self):
+        try:
+            with open("/proc/cpuinfo", 'r') as f:
+                for line in f:
+                    if line.startswith("model name"):
+                        cpu = line.split(':')[1].strip()
+                        print("CPU:", cpu, end="\n\n")
+                        break
+        except:
+            print("Can't retrieve CPU model")
+
+        RuntimeCheck.read_config()
+        config = RuntimeCheck._valid_values
+        for param in RuntimeCheck.config_params:
+            if param in config:
+                print("\t-------------------------")
+                print(f"\t| {Ansi.style_str(param, 'reset', 'bold')}\t| {config[param]}", end='')
+                if param == "temp-limit":
+                    print("°C\t|")
+                else:
+                    print("W\t|")
+        print("\t-------------------------\n")
+
 
 class RuntimeCheck:
     # Default configuration path at project root
-    config_path = os.getcwd() + "/ryzenm-limit.conf"
+    config_path = os.path.dirname(os.path.abspath(__file__)) + "/ryzenm-limit.conf"
 
-    config_params = {
+    config_params = [
             "temp-limit",
             "stapm-limit",
             "fast-limit",
             "slow-limit"
-    }
+    ]
     _config_content = []
     _valid_params = {}
     _valid_values = {}
@@ -210,9 +239,9 @@ class RuntimeCheck:
             for ln, line in enumerate(f):
                 cls._config_content.append(line)
                 ll = line.strip().split('=')
-                if line.startswith('#'): # Ignore empty lines
+                if line.startswith('#'): # Ignore comments
                     continue
-                elif not line.startswith('#') and len(ll) >= 2: # Ignore comments
+                elif not line.startswith('#') and len(ll) >= 2:
                     param, value = ll[0], ll[1]
                     if param in cls.config_params:
                         if not param in cls._valid_params:
@@ -249,6 +278,19 @@ class RuntimeCheck:
             for param in cls._write_params:
                 f.write(f"{param}={cls._write_params[param]}\n")
         os.rename(cls.config_path + ".tmp", cls.config_path)
+
+    @classmethod
+    def get_valid_values(cls):
+        cls.read_config()
+        return cls._valid_values
+
+    @classmethod
+    def get_config_params(cls):
+        return cls.config_params
+
+    @classmethod
+    def get_config_path(cls):
+        return cls.config_path
 
 
 if __name__ == "__main__":
