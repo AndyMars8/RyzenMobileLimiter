@@ -8,8 +8,8 @@ from parse_args import RuntimeCheck
 def get_log_path():
     src_path = os.path.dirname(os.path.abspath(__file__))
     log_path = src_path + "/../logs"
-    if src_path == "/usr/local/src/ryzenm-limit":
-        log_path = "/etc/ryzenm-limit"
+    if src_path == "/etc/ryzenm-limit":
+        log_path = "/var/log/ryzenm-limit"
     return log_path
 
 
@@ -79,7 +79,7 @@ logging_config = {
 def logging_setup():
     #log_path = get_log_path()
     log_path = logging_config["handlers"]["file"]["filename"]
-    if log_path != "/etc/ryzenm-limit":
+    if log_path != "/var/log/ryzenm-limit":
         os.makedirs(os.path.dirname(os.path.abspath(__file__)) + "/../logs", exist_ok=True)
     logging.config.dictConfig(logging_config)
     queue_handler = logging.getHandlerByName("queue_handler")
