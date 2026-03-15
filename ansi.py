@@ -21,10 +21,3 @@ class Ansi:
             text + \
             cls._styles["normal"] + \
             cls._colours['reset']
-
-
-if __name__ == "__main__":
-    # Print styled text
-    print(Ansi.style_str("Normal red text", "red"))
-    print(Ansi.style_str("Bold green text.", "green", "bold"))
-    print(Ansi.style_str("Normal yellow text.", "yellow", "normal"))

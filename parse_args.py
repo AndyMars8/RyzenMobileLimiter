@@ -244,15 +244,24 @@ class RuntimeCheck:
                 elif not line.startswith('#') and len(ll) >= 2:
                     param, value = ll[0], ll[1]
                     if param in cls.config_params:
+                        # Identify the first line a valid parameter appears, so that valid if can be rewritten with a valid value if the value is invalid
                         if not param in cls._valid_params:
                             cls._valid_params[param] = ln
-                        else:
+                        else:   # Mark duplicate parameters as invalid, so that they can be discarded on next config write operation
                             cls._invalid_lines.add(ln)
-                        if not value.isdigit():
+
+                        # Skip check if invalid value is found on a valid paramter
+                        if not value.isdigit() and not cls._valid_values.get(param):
                             cls._invalid_lines.add(ln)
                             cls._valid_values[param] = None
                             continue
-                        cls._valid_values[param] = value
+
+                        # Add valid value to associated parameter
+                        if cls._valid_values.get(param):
+                            if cls._valid_values[param] is None:
+                                cls._valid_values[param] = value
+                        else:
+                            cls._valid_values[param] = value
                         cls._invalid_lines.discard(cls._valid_params[param])
                     else:
                         cls._invalid_lines.add(ln)
