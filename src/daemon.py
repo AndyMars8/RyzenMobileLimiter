@@ -101,7 +101,10 @@ class DaemonHelper:
         return fd
 
     def init_ryzenadj(self):
-        ryzenadj_path = os.path.dirname(os.path.abspath(__file__)) + "/../libryzenadj.so"
+        src_path = os.path.dirname(os.path.abspath(__file__))
+        ryzenadj_path = src_path + "/../lib/libryzenadj.so"
+        if src_path == "/usr/local/src/ryzenm-limit":
+            ryzenadj_path = "/usr/local/lib/ryzenm-limit/libryzenadj.so"
         try:
             self.lib = ctypes.cdll.LoadLibrary(ryzenadj_path)
         except:
@@ -127,22 +130,34 @@ class DaemonHelper:
         self.ryzenadj = self.lib.init_ryzenadj()
 
     def monitor(self):
-        self.lib.refresh_table(self.ryzenadj)
-        # Reapply user limits if a reset has been detected or user has changed settings
-        if self.lib.get_tctl_temp(self.ryzenadj) != self.settings["tctl_temp"]:
-            logger.info("Reapplying settings for persistence")
-            self.apply_settings()
-        time.sleep(1)
         # Check if config content has changed
         current_mtime = os.path.getmtime(RuntimeCheck.get_config_path())
         if current_mtime != self.last_mtime:
             self.retrieve_settings()
-            logger.info("Applying config settings")
             self.apply_settings()
             self.last_mtime = current_mtime
+        time.sleep(1)
+        self.lib.refresh_table(self.ryzenadj)
+        # Reapply user limits if a reset has been detected or user has changed settings
+        for s in self.settings:
+            actual_setting = int(getattr(self.lib, "get_" + s)(self.ryzenadj))
+            if (s == "tctl_temp" and actual_setting != self.settings[s]) or (
+                s != "tctl_temp" and actual_setting != self.settings[s] // 1000):
+                logger.info("Reapplying settings for persistence")
+                self.apply_settings()
+                break
+        time.sleep(1)
 
     def apply_settings(self):
         for s in self.settings:
+            try:
+                actual_setting = int(getattr(self.lib, "get_" + s)(self.ryzenadj))
+                if (s == "tctl_temp" and actual_setting == self.settings[s]) or (
+                    s != "tctl_temp" and actual_setting == self.settings[s] // 1000):
+                    continue
+            except:
+                pass
+
             if getattr(self.lib, "set_" + s)(self.ryzenadj, self.settings[s]):
                 if s == "tctl_temp":
                     logger.error(f"Unsuccessful in setting {s} to {self.settings[s]}°C")

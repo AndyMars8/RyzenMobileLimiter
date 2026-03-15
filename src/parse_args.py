@@ -184,6 +184,8 @@ class ParseArgs(argparse.ArgumentParser):
         except:
             print("Can't retrieve CPU model")
 
+        print(Ansi.style_str("*These values are extrapolated from configuration and may not be reflective of applied values", "reset", "bold"))
+
         RuntimeCheck.read_config()
         config = RuntimeCheck._valid_values
         for param in RuntimeCheck.config_params:
@@ -199,7 +201,7 @@ class ParseArgs(argparse.ArgumentParser):
 
 class RuntimeCheck:
     # Default configuration path at project root
-    config_path = os.path.dirname(os.path.abspath(__file__)) + "/../config/ryzenm-limit.conf"
+    config_path = None
 
     config_params = [
             "temp-limit",
@@ -228,14 +230,17 @@ class RuntimeCheck:
 
     @classmethod
     def find_config(cls):
-        alt_config_path = os.path.expanduser("~/.config/ryzenm-limit/ryzenm-limit.conf")
-        if os.path.exists(alt_config_path):
-            cls.config_path = alt_config_path
-        return cls.config_path
+        src_path = os.path.dirname(os.path.abspath(__file__))
+        config_path = src_path + "/../config/ryzenm-limit.conf"
+
+        if src_path == "/usr/local/src/ryzenm-limit":
+            config_path = "/etc/ryzenm-limit/ryzenm-limit.conf"
+
+        return config_path
 
     @classmethod
     def read_config(cls):
-        with open(cls.find_config(), 'r') as f:
+        with open(cls.get_config_path(), 'r') as f:
             for ln, line in enumerate(f):
                 cls._config_content.append(line)
                 ll = line.strip().split('=')
@@ -290,6 +295,7 @@ class RuntimeCheck:
 
     @classmethod
     def get_valid_values(cls):
+        cls._valid_values.clear()
         cls.read_config()
         return cls._valid_values
 
@@ -299,6 +305,8 @@ class RuntimeCheck:
 
     @classmethod
     def get_config_path(cls):
+        if cls.config_path is None:
+            cls.config_path = cls.find_config()
         return cls.config_path
 
 
