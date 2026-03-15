@@ -5,6 +5,14 @@ import logging.config
 from parse_args import RuntimeCheck
 
 
+def get_log_path():
+    src_path = os.path.dirname(os.path.abspath(__file__))
+    log_path = src_path + "/../logs"
+    if src_path == "/usr/local/src/ryzenm-limit":
+        log_path = "/etc/ryzenm-limit"
+    return log_path
+
+
 class NoStderrFilter(logging.Filter):
     def filter(self, record):
         return record.levelno < logging.WARNING
@@ -43,7 +51,7 @@ logging_config = {
             "class": "logging.handlers.RotatingFileHandler",
             "level": "DEBUG",
             "formatter": "simple",
-            "filename": "../logs/ryzenm-limit.log",
+            "filename": f"{get_log_path()}/ryzenm-limit.log",
             "maxBytes": 1000000,
             "backupCount": 2
         },
@@ -69,7 +77,10 @@ logging_config = {
 
 
 def logging_setup():
-    os.makedirs(os.path.dirname(os.path.abspath(__file__)) + "/../logs", exist_ok=True)
+    #log_path = get_log_path()
+    log_path = logging_config["handlers"]["file"]["filename"]
+    if log_path != "/etc/ryzenm-limit":
+        os.makedirs(os.path.dirname(os.path.abspath(__file__)) + "/../logs", exist_ok=True)
     logging.config.dictConfig(logging_config)
     queue_handler = logging.getHandlerByName("queue_handler")
     if queue_handler is not None:
