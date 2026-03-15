@@ -199,7 +199,7 @@ class ParseArgs(argparse.ArgumentParser):
 
 class RuntimeCheck:
     # Default configuration path at project root
-    config_path = os.path.dirname(os.path.abspath(__file__)) + "/ryzenm-limit.conf"
+    config_path = os.path.dirname(os.path.abspath(__file__)) + "/../config/ryzenm-limit.conf"
 
     config_params = [
             "temp-limit",

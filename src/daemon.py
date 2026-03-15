@@ -43,7 +43,7 @@ logging_config = {
             "class": "logging.handlers.RotatingFileHandler",
             "level": "DEBUG",
             "formatter": "simple",
-            "filename": "logs/ryzenm-limit.log",
+            "filename": "../logs/ryzenm-limit.log",
             "maxBytes": 1000000,
             "backupCount": 2
         },
@@ -69,7 +69,7 @@ logging_config = {
 
 
 def logging_setup():
-    os.makedirs(os.path.dirname(os.path.abspath(__file__)) + "/logs", exist_ok=True)
+    os.makedirs(os.path.dirname(os.path.abspath(__file__)) + "/../logs", exist_ok=True)
     logging.config.dictConfig(logging_config)
     queue_handler = logging.getHandlerByName("queue_handler")
     if queue_handler is not None:
@@ -101,7 +101,7 @@ class DaemonHelper:
         return fd
 
     def init_ryzenadj(self):
-        ryzenadj_path = os.path.dirname(os.path.abspath(__file__)) + "/libryzenadj.so"
+        ryzenadj_path = os.path.dirname(os.path.abspath(__file__)) + "/../libryzenadj.so"
         try:
             self.lib = ctypes.cdll.LoadLibrary(ryzenadj_path)
         except:
