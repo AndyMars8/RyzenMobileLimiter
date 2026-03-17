@@ -46,7 +46,7 @@ Clone this repository and then follow the [RyzenAdj build guide](https://github.
 Test run the daemon:
 
     sudo ./ryzenm-limit start
-If the daemon doesn't start, you need to have the [ryzen_smu](https://github.com/amkillam/ryzen_smu) kernel module installed (which is mentioned in the guide above) or have the kernel parameter ```iomem=relaxed``` loaded at boot. A successful initialisation should show the message below without errors:
+If the daemon doesn't start, you need to have the [ryzen_smu](https://github.com/amkillam/ryzen_smu) kernel module installed and loaded (which is mentioned in the guide above) or have the kernel parameter ```iomem=relaxed``` loaded at boot. A successful initialisation should show the message below without errors:
 
     [INFO] yyyy-mm-dd hh:mm:ss - Started RyzenMobileLimiter daemon
 On a separate terminal, run a command to check if the daemon has successfully processed it (Example: ```./ryzenm-limit -t 90 -p 35```):
@@ -59,7 +59,7 @@ On a separate terminal, run a command to check if the daemon has successfully pr
 If you wish for these values to persist, keep the daemon running.
 ## Installation
 ### Linux
-After following the setup instructions above, Ryzen Mobile Limiter can be installed by copying the following files to their respective directories in the root file system:
+After following the setup instructions above, Ryzen Mobile Limiter can be installed by copying the following files/directories to their respective directories in the root file system:
 
     sudo cp ryzenm-limit /usr/local/bin/
     sudo cp -r src/ /usr/local/src/ryzenm-limit/
