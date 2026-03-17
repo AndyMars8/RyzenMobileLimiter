@@ -136,11 +136,9 @@ class ParseArgs(argparse.ArgumentParser):
     def __write_to_config(self):
         try:
             RuntimeCheck.read_config()
-        except FileNotFoundError:
-            print(Ansi.style_str("Config file not found", "red", "bold"))
-            sys.exit(1)
         except PermissionError:
-            print(Ansi.style_str("Root privileges required", "red", "bold"))
+            print(Ansi.style_str("Root privileges are required", "red", "bold"))
+            sys.exit(1)
 
         if self.args.temp_limit is not None:
             print(f"Setting CPU temperature limit to {self.args.temp_limit}°C")
