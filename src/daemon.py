@@ -6,9 +6,9 @@ from parse_args import RuntimeCheck
 
 
 def get_log_path():
-    src_path = os.path.dirname(os.path.abspath(__file__))
+    src_path = RuntimeCheck.get_src_path()
     log_path = src_path + "/../logs"
-    if src_path == "/etc/ryzenm-limit":
+    if src_path == RuntimeCheck.INSTALLED_SRC_PATH:
         log_path = "/var/log/ryzenm-limit"
     return log_path
 
@@ -77,10 +77,12 @@ logging_config = {
 
 
 def logging_setup():
-    #log_path = get_log_path()
     log_path = logging_config["handlers"]["file"]["filename"]
-    if log_path != "/var/log/ryzenm-limit":
-        os.makedirs(os.path.dirname(os.path.abspath(__file__)) + "/../logs", exist_ok=True)
+    if log_path == "/var/log/ryzenm-limit/ryzenm-limit.log":
+        os.makedirs("/var/log/ryzenm-limit", exist_ok=True)
+    else:
+        os.makedirs(RuntimeCheck.get_src_path() + "/../logs", exist_ok=True)
+
     logging.config.dictConfig(logging_config)
     queue_handler = logging.getHandlerByName("queue_handler")
     if queue_handler is not None:
@@ -90,7 +92,8 @@ def logging_setup():
 
 class DaemonHelper:
     def __init__(self):
-        self.lockfile = "/run/lock/ryzenm-limit.lock"
+        self.src_path = RuntimeCheck.get_src_path()
+        self.lockfile = RuntimeCheck.LOCK_PATH
         self.lock_fd = self.run_once(self.lockfile)
         self.settings = {}
         self.last_mtime = 0
@@ -112,9 +115,8 @@ class DaemonHelper:
         return fd
 
     def init_ryzenadj(self):
-        src_path = os.path.dirname(os.path.abspath(__file__))
-        ryzenadj_path = src_path + "/../lib/libryzenadj.so"
-        if src_path == "/usr/local/src/ryzenm-limit":
+        ryzenadj_path = self.src_path + "/../lib/libryzenadj.so"
+        if self.src_path == RuntimeCheck.INSTALLED_SRC_PATH:
             ryzenadj_path = "/usr/local/lib/ryzenm-limit/libryzenadj.so"
         try:
             self.lib = ctypes.cdll.LoadLibrary(ryzenadj_path)
@@ -149,6 +151,7 @@ class DaemonHelper:
             self.last_mtime = current_mtime
         time.sleep(1)
         self.lib.refresh_table(self.ryzenadj)
+
         # Reapply user limits if a reset has been detected or user has changed settings
         for s in self.settings:
             actual_setting = int(getattr(self.lib, "get_" + s)(self.ryzenadj))
@@ -161,6 +164,7 @@ class DaemonHelper:
 
     def apply_settings(self):
         for s in self.settings:
+            # Skip setting if it hasn't changed
             try:
                 actual_setting = int(getattr(self.lib, "get_" + s)(self.ryzenadj))
                 if (s == "tctl_temp" and actual_setting == self.settings[s]) or (
@@ -169,6 +173,7 @@ class DaemonHelper:
             except:
                 pass
 
+            # Change setting
             if getattr(self.lib, "set_" + s)(self.ryzenadj, self.settings[s]):
                 if s == "tctl_temp":
                     logger.error(f"Unsuccessful in setting {s} to {self.settings[s]}°C")
@@ -201,6 +206,7 @@ def handle_quit_signal(signum, frame):
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, handle_quit_signal)
     signal.signal(signal.SIGTERM, handle_quit_signal)
+    signal.signal(signal.SIGHUP, handle_quit_signal)
 
     if os.geteuid() != 0:
         print("Root privileges are required")
@@ -231,6 +237,7 @@ if __name__ == "__main__":
     except SystemExit as e:
         logger.info(f"Daemon exited with status: {e}")
     finally:
+        # Remove lock file upon exiting
         fcntl.flock(d.lock_fd, fcntl.LOCK_UN)
         os.close(d.lock_fd)
         os.unlink(d.lockfile)

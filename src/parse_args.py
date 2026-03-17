@@ -134,11 +134,14 @@ class ParseArgs(argparse.ArgumentParser):
             )
 
     def __write_to_config(self):
+        if RuntimeCheck.get_src_path() == RuntimeCheck.INSTALLED_SRC_PATH and os.geteuid() != 0:
+            print("Root privileges are required")
+            sys.exit(1)
+
         try:
             RuntimeCheck.read_config()
-        except PermissionError:
-            print(Ansi.style_str("Root privileges are required", "red", "bold"))
-            sys.exit(1)
+        except:
+            pass
 
         if self.args.temp_limit is not None:
             print(f"Setting CPU temperature limit to {self.args.temp_limit}°C")
@@ -200,7 +203,12 @@ class ParseArgs(argparse.ArgumentParser):
 
 
 class RuntimeCheck:
-    # Default configuration path at project root
+    INSTALLED_SRC_PATH = "/usr/local/src/ryzenm-limit"
+    INSTALLED_CONFIG_PATH = "/etc/ryzenm-limit/ryzenm-limit.conf"
+
+    LOCK_PATH = "/run/lock/ryzenm-limit.lock"
+
+    src_path = os.path.dirname(os.path.abspath(__file__))
     config_path = None
 
     config_params = [
@@ -216,10 +224,10 @@ class RuntimeCheck:
 
     _write_params = {}
 
-    def check_daemon_status():
-        lock_path = "/run/lock/ryzenm-limit.lock"
+    @classmethod
+    def check_daemon_status(cls):
         try:
-            fd = open(lock_path, 'r')
+            fd = open(cls.LOCK_PATH, 'r')
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             fd.close()
             return False    # No lock held, daemon not running
@@ -230,11 +238,11 @@ class RuntimeCheck:
 
     @classmethod
     def find_config(cls):
-        src_path = os.path.dirname(os.path.abspath(__file__))
-        config_path = src_path + "/../config/ryzenm-limit.conf"
+        # Default configuration path at project root
+        config_path = cls.src_path + "/../config/ryzenm-limit.conf"
 
-        if src_path == "/usr/local/src/ryzenm-limit":
-            config_path = "/etc/ryzenm-limit/ryzenm-limit.conf"
+        if cls.src_path == cls.INSTALLED_SRC_PATH:
+            config_path = cls.INSTALLED_CONFIG_PATH
 
         return config_path
 
@@ -302,6 +310,10 @@ class RuntimeCheck:
     @classmethod
     def get_config_params(cls):
         return cls.config_params
+
+    @classmethod
+    def get_src_path(cls):
+        return cls.src_path
 
     @classmethod
     def get_config_path(cls):

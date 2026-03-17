@@ -57,3 +57,29 @@ On a separate terminal, run a command to check if the daemon has successfully pr
     [INFO] yyyy-mm-dd hh:mm:ss - Successfully set slow_limit to 35W
 
 If you wish for these values to persist, keep the daemon running.
+## Installation
+### Linux
+After following the setup instructions above, Ryzen Mobile Limiter can be installed by copying the following files to their respective directories in the root file system:
+
+    sudo cp ryzenm-limit /usr/local/bin
+    sudo cp -r src /usr/local/src/ryzenm-limit
+    sudo cp -r lib /usr/local/lib/ryzenm-limit
+    sudo cp -r config /etc/ryzenm-limit
+If entering ```sudo ryzenm-limit``` returns ```sudo: ryzenm-limit: command not found```, you'll need to add ```/usr/local/bin``` to ```secure_path```:
+
+    sudo visudo
+Or edit with a text editor of your choice (Example: nano):
+
+    sudo EDITOR=nano visudo
+Find these lines:
+
+    ## Use this PATH instead of the user's to find commands.
+    Defaults secure_path="/usr/sbin:/usr/bin:/sbin:/bin"
+Then add the required path to ```secure_path```:
+
+    Defaults secure_path="/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/bin"
+#### Systemd
+If you wish to run Ryzen Mobile Limiter in the background at system startup, you can use the provided Systemd service:
+
+    sudo cp systemd/ryzenm-limit.service /etc/systemd/system
+    sudo systemctl enable --now ryzenm-limit.service
