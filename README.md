@@ -45,7 +45,7 @@ Clone this repository and then follow the [RyzenAdj build guide](https://github.
     cp /path/to/RyzenAdj/build/libryzenadj.so lib
 Test run the daemon:
 
-    sudo ryzenm-limit start
+    sudo ./ryzenm-limit start
 If the daemon doesn't start, you need to have the [ryzen_smu](https://github.com/amkillam/ryzen_smu) kernel module installed (which is mentioned in the guide above) or have the kernel parameter ```iomem=relaxed``` loaded at boot. A successful initialisation should show the message below without errors:
 
     [INFO] yyyy-mm-dd hh:mm:ss - Started RyzenMobileLimiter daemon
