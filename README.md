@@ -6,7 +6,7 @@ This project relies on [FlyGoat/RyzenAdj](https://github.com/FlyGoat/RyzenAdj) f
 Manipulation of hardware power registers may cause system instability. Use at your own risk!
 Research your hardware specifications for safe limits before applying them.
 
-For more information about supported APU architectures, visit RyzenAdj's [Supported Models page](https://github.com/FlyGoat/RyzenAdj/wiki/Supported-Models)
+For more information about supported APU architectures, visit RyzenAdj's [Supported Models page](https://github.com/FlyGoat/RyzenAdj/wiki/Supported-Models).
 
 ***\*A device I own has an AMD Ryzen 7 7840HS (Phoenix). Although it's not listed on the Supported Models page, I can personally confirm that setting temperature and power limits work as intended.***
 ## Usage
@@ -32,7 +32,7 @@ For more fine-tuned power limits to account for performance in short bursts:
 or
 
     ./ryzenm-limit -q 35 54 45
-More information on these particular options are documented [here](https://github.com/FlyGoat/RyzenAdj/wiki/Renoir-Tuning-Guide#--stapm-limit--stapm-limit)
+More information on these particular options are documented [here](https://github.com/FlyGoat/RyzenAdj/wiki/Renoir-Tuning-Guide#--stapm-limit--stapm-limit).
 ## Setup Instructions
 ### Linux
 Ensure the system has Git and Python 3.9 or newer installed, which can be verified with:
