@@ -37,12 +37,12 @@ More information on these particular options are documented [here](https://githu
 ### Linux
 Ensure the system has Git and Python 3.9 or newer installed, which can be verified with:
 
-    ./python3 --version
+    python3 --version
 Clone this repository and then follow the [RyzenAdj build guide](https://github.com/FlyGoat/RyzenAdj?tab=readme-ov-file#linux) for Linux in order to copy the compiled library.
 
     git clone https://github.com/AndyMars8/RyzenMobileLimiter.git
     cd RyzenMobileLimiter && mkdir lib
-    cp /path/to/RyzenAdj/build/libryzenadj.so lib
+    cp /path/to/RyzenAdj/build/libryzenadj.so lib/
 Test run the daemon:
 
     sudo ./ryzenm-limit start
@@ -61,10 +61,10 @@ If you wish for these values to persist, keep the daemon running.
 ### Linux
 After following the setup instructions above, Ryzen Mobile Limiter can be installed by copying the following files to their respective directories in the root file system:
 
-    sudo cp ryzenm-limit /usr/local/bin
-    sudo cp -r src /usr/local/src/ryzenm-limit
-    sudo cp -r lib /usr/local/lib/ryzenm-limit
-    sudo cp -r config /etc/ryzenm-limit
+    sudo cp ryzenm-limit /usr/local/bin/
+    sudo cp -r src/ /usr/local/src/ryzenm-limit/
+    sudo cp -r lib/ /usr/local/lib/ryzenm-limit/
+    sudo cp -r config/ /etc/ryzenm-limit/
 If entering ```sudo ryzenm-limit``` returns ```sudo: ryzenm-limit: command not found```, you'll need to add ```/usr/local/bin``` to ```secure_path```:
 
     sudo visudo
@@ -81,5 +81,5 @@ Then add the required path to ```secure_path```:
 #### Systemd
 If you wish to run Ryzen Mobile Limiter in the background at system startup, you can use the provided Systemd service:
 
-    sudo cp systemd/ryzenm-limit.service /etc/systemd/system
+    sudo cp systemd/ryzenm-limit.service /etc/systemd/system/
     sudo systemctl enable --now ryzenm-limit.service
