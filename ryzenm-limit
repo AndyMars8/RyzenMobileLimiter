@@ -2,13 +2,13 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE}")" && pwd)"
 if [ $SCRIPT_DIR == "/usr/local/bin" ]; then
-    if [ $1 == "start" ]; then
+    if [ "$1" == "start" ]; then
         python3 $SCRIPT_DIR/../src/ryzenm-limit/daemon.py
     else
         python3 $SCRIPT_DIR/../src/ryzenm-limit/parse_args.py "$@"
     fi
 else
-    if [ $1 == "start" ]; then
+    if [ "$1" == "start" ]; then
         python3 $SCRIPT_DIR/src/daemon.py
     else
         python3 $SCRIPT_DIR/src/parse_args.py "$@"
