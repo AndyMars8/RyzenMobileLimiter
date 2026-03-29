@@ -4,6 +4,14 @@ import argparse, sys, os, fcntl
 from ansi import Ansi
 
 
+class RemoveMetavars(argparse.HelpFormatter):
+    def __init__(self, prog, indent_increment=4, max_help_position=25, width=None):
+        super().__init__(prog, indent_increment, max_help_position, width)
+
+    def _format_action_invocation(self, action):
+        return f"{', '.join(action.option_strings)}"
+
+
 class ParseArgs(argparse.ArgumentParser):
     def __init__(self):
         self.daemon_is_active = True
@@ -11,13 +19,12 @@ class ParseArgs(argparse.ArgumentParser):
             print(Ansi.style_str("WARNING: Daemon isn't running", "red", "bold"))
             self.daemon_is_active = False
 
-        formatter = lambda prog: argparse.HelpFormatter(prog, max_help_position=25)
         super().__init__(
             prog="ryzenm-limit",
             add_help=False,
             usage = Ansi.style_str("%(prog)s [options]", "yellow", "bold"),
             description="A simple tool to set power and temperature limits for Ryzen mobile APUs",
-            formatter_class=formatter,
+            formatter_class=RemoveMetavars,
             exit_on_error=True
         )
 
