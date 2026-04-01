@@ -142,6 +142,11 @@ class DaemonHelper:
 
         self.ryzenadj = self.lib.init_ryzenadj()
 
+    def cleanup_ryzenadj(self):
+        self.lib.cleanup_ryzenadj.restype = ctypes.c_void_p
+        self.lib.cleanup_ryzenadj.argtypes = [ctypes.c_void_p]
+        self.lib.cleanup_ryzenadj(self.ryzenadj)
+
     def monitor(self):
         # Check if config content has changed
         current_mtime = os.path.getmtime(RuntimeCheck.get_config_path())
@@ -237,6 +242,7 @@ if __name__ == "__main__":
     except SystemExit as e:
         logger.info(f"Daemon exited with status: {e}")
     finally:
+        d.cleanup_ryzenadj()
         # Remove lock file upon exiting
         fcntl.flock(d.lock_fd, fcntl.LOCK_UN)
         os.close(d.lock_fd)
