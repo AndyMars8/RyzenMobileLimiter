@@ -10,7 +10,7 @@ This project relies on [FlyGoat/RyzenAdj](https://github.com/FlyGoat/RyzenAdj) f
 For more information about supported APU architectures, visit RyzenAdj's [Supported Models page](https://github.com/FlyGoat/RyzenAdj/wiki/Supported-Models).
 
 > [!NOTE]
-> ***\*A device I own has an AMD Ryzen 7 7840HS (Phoenix). Although it's not listed on the Supported Models page, I can personally confirm that setting temperature and power limits work as intended for that particular model.***
+> A device I own has an AMD Ryzen 7 7840HS (Phoenix). Although it's not listed on the Supported Models page, I can personally confirm that setting temperature and power limits work as intended for that particular model.
 ## Usage
 Ryzen Mobile Limiter's purpose is to enforce APU temperature and power limits. Demo commands are listed below.
 ### Temperature Limit
