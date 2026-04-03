@@ -48,15 +48,16 @@ Clone this repository and then follow the [RyzenAdj build guide](https://github.
 Test run the daemon:
 
     sudo ./ryzenm-limit start
-If the daemon doesn't start, you need to have the [ryzen_smu](https://github.com/amkillam/ryzen_smu) kernel module installed and loaded (which is mentioned in the guide above) or have the kernel parameter ```iomem=relaxed``` loaded at boot. A successful initialisation should show the message below without errors:
-
-    [INFO] yyyy-mm-dd hh:mm:ss - Started RyzenMobileLimiter daemon
-On a separate terminal, run a command to check if the daemon has successfully processed it (Example: ```./ryzenm-limit -t 90 -p 35```):
-
-    [INFO] yyyy-mm-dd hh:mm:ss - Successfully set tctl_temp to 90°C
-    [INFO] yyyy-mm-dd hh:mm:ss - Successfully set stapm_limit to 35W
-    [INFO] yyyy-mm-dd hh:mm:ss - Successfully set fast_limit to 35W
-    [INFO] yyyy-mm-dd hh:mm:ss - Successfully set slow_limit to 35W
+> [!NOTE]
+> If the daemon doesn't start, you need to have the [ryzen_smu](https://github.com/amkillam/ryzen_smu) kernel module installed and loaded (which is mentioned in the guide above) or have the kernel parameter ```iomem=relaxed``` loaded at boot. A successful initialisation should show the message below without errors:
+> 
+>    [INFO] yyyy-mm-dd hh:mm:ss - Started RyzenMobileLimiter daemon
+> On a separate terminal, run a command to check if the daemon has successfully processed it (Example: ```./ryzenm-limit -t 90 -p 35```):
+> 
+>    [INFO] yyyy-mm-dd hh:mm:ss - Successfully set tctl_temp to 90°C
+>    [INFO] yyyy-mm-dd hh:mm:ss - Successfully set stapm_limit to 35W
+>    [INFO] yyyy-mm-dd hh:mm:ss - Successfully set fast_limit to 35W
+>    [INFO] yyyy-mm-dd hh:mm:ss - Successfully set slow_limit to 35W
 
 If you wish for these values to persist, keep the daemon running.
 ## Installation
@@ -67,17 +68,18 @@ After following the setup instructions above, Ryzen Mobile Limiter can be instal
     sudo cp -r src/ /usr/local/src/ryzenm-limit/
     sudo cp -r lib/ /usr/local/lib/ryzenm-limit/
     sudo cp -r config/ /etc/ryzenm-limit/
-If entering ```sudo ryzenm-limit``` returns ```sudo: ryzenm-limit: command not found```, you'll need to add ```/usr/local/bin``` to ```secure_path```:
+> [!NOTE]
+> If entering ```sudo ryzenm-limit``` returns ```sudo: ryzenm-limit: command not found```, you'll need to add ```/usr/local/bin``` to ```secure_path```:
 
     sudo visudo
-Or edit with a text editor of your choice (Example: nano):
+> Or edit with a text editor of your choice (Example: nano):
 
     sudo EDITOR=nano visudo
-Find these lines:
+> Find these lines:
 
     ## Use this PATH instead of the user's to find commands.
     Defaults secure_path="/usr/sbin:/usr/bin:/sbin:/bin"
-Then add the required path to ```secure_path```:
+> Then add the required path to ```secure_path```:
 
     Defaults secure_path="/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/bin"
 #### Systemd
