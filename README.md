@@ -3,12 +3,14 @@ A simplified power management utility for laptops with AMD Ryzen APU.
 ## Acknowledgements
 This project relies on [FlyGoat/RyzenAdj](https://github.com/FlyGoat/RyzenAdj) for functionality and wouldn't be possible without its existence.
 ## ⚠️ Disclaimer ⚠️
-Manipulation of hardware power registers may cause system instability. Use at your own risk!
-Research your hardware specifications for safe limits before applying them.
+> [!WARNING]
+> Manipulation of hardware power registers may cause system instability. Use at your own risk!
+> Research your hardware specifications for safe limits before applying them.
 
 For more information about supported APU architectures, visit RyzenAdj's [Supported Models page](https://github.com/FlyGoat/RyzenAdj/wiki/Supported-Models).
 
-***\*A device I own has an AMD Ryzen 7 7840HS (Phoenix). Although it's not listed on the Supported Models page, I can personally confirm that setting temperature and power limits work as intended for that particular model.***
+> [!NOTE]
+> ***\*A device I own has an AMD Ryzen 7 7840HS (Phoenix). Although it's not listed on the Supported Models page, I can personally confirm that setting temperature and power limits work as intended for that particular model.***
 ## Usage
 Ryzen Mobile Limiter's purpose is to enforce APU temperature and power limits. Demo commands are listed below.
 ### Temperature Limit

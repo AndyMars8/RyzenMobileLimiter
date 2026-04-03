@@ -1,13 +1,14 @@
 # This program is the daemon for ryzenm-limit
 
-import fcntl, os, sys, signal, time, shutil, subprocess, ctypes, logging, atexit
+import fcntl, os, sys, signal, time, shutil, subprocess, ctypes, logging, atexit, pathlib
 import logging.config
-from parse_args import RuntimeCheck
+from runtime_check import RuntimeCheck
+from management import RyzenAdj
 
 
 def get_log_path():
     src_path = RuntimeCheck.get_src_path()
-    log_path = src_path + "/../logs"
+    log_path = os.path.realpath(src_path + "/../logs")
     if src_path == RuntimeCheck.INSTALLED_SRC_PATH:
         log_path = "/var/log/ryzenm-limit"
     return log_path
@@ -78,10 +79,15 @@ logging_config = {
 
 def logging_setup():
     log_path = logging_config["handlers"]["file"]["filename"]
-    if log_path == "/var/log/ryzenm-limit/ryzenm-limit.log":
-        os.makedirs("/var/log/ryzenm-limit", exist_ok=True)
-    else:
-        os.makedirs(RuntimeCheck.get_src_path() + "/../logs", exist_ok=True)
+    log_dir = os.path.dirname(log_path)
+    os.makedirs(log_dir, exist_ok=True)
+    log_file = pathlib.Path(log_path)
+    log_file.touch(exist_ok=True)
+
+    if 'SUDO_UID' in os.environ and 'SUDO_GID' in os.environ and log_dir != '/var/log/ryzenm-limit':
+        uid, gid = int(os.environ['SUDO_UID']), int(os.environ['SUDO_GID'])
+        os.chown(log_dir, uid, gid)
+        os.chown(log_path, uid, gid)
 
     logging.config.dictConfig(logging_config)
     queue_handler = logging.getHandlerByName("queue_handler")
@@ -99,7 +105,7 @@ class DaemonHelper:
         self.last_mtime = 0
 
         self.ryzenadj = None
-        self.lib = None
+        #self.lib = None
 
         self.retrieve_settings()
 
@@ -115,37 +121,48 @@ class DaemonHelper:
         return fd
 
     def init_ryzenadj(self):
-        ryzenadj_path = self.src_path + "/../lib/libryzenadj.so"
+        ryzenadj_path = os.path.realpath(self.src_path + "/../lib/libryzenadj.so")
         if self.src_path == RuntimeCheck.INSTALLED_SRC_PATH:
             ryzenadj_path = "/usr/local/lib/ryzenm-limit/libryzenadj.so"
         try:
-            self.lib = ctypes.cdll.LoadLibrary(ryzenadj_path)
+            self.ryzenadj = RyzenAdj(ryzenadj_path)
         except:
-            logger.error("libryzenadj.so is required for daemon to operate. Cannot acquire path to libryzenadj.so")
+            logger.error(f"libryzenadj.so is required for daemon to operate: Could not open {ryzenadj_path}")
             sys.exit(1)
 
-        # Define ctype mappings for relevant settings
-        config_params = RuntimeCheck.get_config_params()
-
-        self.lib.init_ryzenadj.restype = ctypes.c_void_p
-        self.lib.refresh_table.argtypes = [ctypes.c_void_p]
-
-        self.lib.get_tctl_temp.restype = ctypes.c_float
-        self.lib.get_tctl_temp.argtypes = [ctypes.c_void_p]
-        self.lib.set_tctl_temp.argtypes = [ctypes.c_void_p, ctypes.c_ulong]
-
-        for i in range(1, len(config_params)):
-            param = config_params[i].replace('-', '_')
-            getattr(self.lib, "get_" + param).restype = ctypes.c_float
-            getattr(self.lib, "get_" + param).argtypes = [ctypes.c_void_p]
-            getattr(self.lib, "set_" + param).argtypes = [ctypes.c_void_p, ctypes.c_ulong]
-
-        self.ryzenadj = self.lib.init_ryzenadj()
+    # def init_ryzenadj(self):
+    #     ryzenadj_path = os.path.realpath(self.src_path + "/../lib/libryzenadj.so")
+    #     if self.src_path == RuntimeCheck.INSTALLED_SRC_PATH:
+    #         ryzenadj_path = "/usr/local/lib/ryzenm-limit/libryzenadj.so"
+    #     try:
+    #         self.lib = ctypes.cdll.LoadLibrary(ryzenadj_path)
+    #     except:
+    #         logger.error(f"libryzenadj.so is required for daemon to operate: {ryzenadj_path} not found")
+    #         sys.exit(1)
+    #
+    #     # Define ctype mappings for relevant settings
+    #     config_params = RuntimeCheck.get_config_params()
+    #
+    #     self.lib.init_ryzenadj.restype = ctypes.c_void_p
+    #     self.lib.refresh_table.argtypes = [ctypes.c_void_p]
+    #
+    #     self.lib.get_tctl_temp.restype = ctypes.c_float
+    #     self.lib.get_tctl_temp.argtypes = [ctypes.c_void_p]
+    #     self.lib.set_tctl_temp.argtypes = [ctypes.c_void_p, ctypes.c_ulong]
+    #
+    #     for i in range(1, len(config_params)):
+    #         param = config_params[i].replace('-', '_')
+    #         getattr(self.lib, "get_" + param).restype = ctypes.c_float
+    #         getattr(self.lib, "get_" + param).argtypes = [ctypes.c_void_p]
+    #         getattr(self.lib, "set_" + param).argtypes = [ctypes.c_void_p, ctypes.c_ulong]
+    #
+    #     self.ryzenadj = self.lib.init_ryzenadj()
 
     def cleanup_ryzenadj(self):
-        self.lib.cleanup_ryzenadj.restype = ctypes.c_void_p
-        self.lib.cleanup_ryzenadj.argtypes = [ctypes.c_void_p]
-        self.lib.cleanup_ryzenadj(self.ryzenadj)
+        self.ryzenadj.cleanup()
+        # self.lib.cleanup_ryzenadj.restype = ctypes.c_void_p
+        # self.lib.cleanup_ryzenadj.argtypes = [ctypes.c_void_p]
+        # self.lib.cleanup_ryzenadj(self.ryzenadj)
 
     def monitor(self):
         # Check if config content has changed
@@ -155,13 +172,17 @@ class DaemonHelper:
             self.apply_settings()
             self.last_mtime = current_mtime
         time.sleep(1)
-        self.lib.refresh_table(self.ryzenadj)
+        self.ryzenadj.refresh_table()
+        # self.lib.refresh_table(self.ryzenadj)
 
         # Reapply user limits if a reset has been detected or user has changed settings
         for s in self.settings:
-            actual_setting = int(getattr(self.lib, "get_" + s)(self.ryzenadj))
+            actual_setting = int(getattr(self.ryzenadj, "get_" + s)())
             if (s == "tctl_temp" and actual_setting != self.settings[s]) or (
-                s != "tctl_temp" and actual_setting != self.settings[s] // 1000):
+                s != "tctl_temp" and actual_setting != self.settings[s]):
+            # actual_setting = int(getattr(self.lib, "get_" + s)(self.ryzenadj))
+            # if (s == "tctl_temp" and actual_setting != self.settings[s]) or (
+            #     s != "tctl_temp" and actual_setting != self.settings[s] // 1000):
                 logger.info("Reapplying settings for persistence")
                 self.apply_settings()
                 break
@@ -171,33 +192,45 @@ class DaemonHelper:
         for s in self.settings:
             # Skip setting if it hasn't changed
             try:
-                actual_setting = int(getattr(self.lib, "get_" + s)(self.ryzenadj))
+                actual_setting = int(getattr(self.ryzenadj, "get_" + s)())
                 if (s == "tctl_temp" and actual_setting == self.settings[s]) or (
-                    s != "tctl_temp" and actual_setting == self.settings[s] // 1000):
+                    s != "tctl_temp" and actual_setting == self.settings[s]):
+                # actual_setting = int(getattr(self.lib, "get_" + s)(self.ryzenadj))
+                # if (s == "tctl_temp" and actual_setting == self.settings[s]) or (
+                #     s != "tctl_temp" and actual_setting == self.settings[s] // 1000):
                     continue
             except:
                 pass
 
             # Change setting
-            if getattr(self.lib, "set_" + s)(self.ryzenadj, self.settings[s]):
+            if getattr(self.ryzenadj, "set_" + s)(self.settings[s]):
+            # if getattr(self.lib, "set_" + s)(self.ryzenadj, self.settings[s]):
                 if s == "tctl_temp":
                     logger.error(f"Unsuccessful in setting {s} to {self.settings[s]}°C")
                 else:
-                    logger.error(f"Unsuccessful in setting {s} to {self.settings[s] // 1000}W")
+                    logger.error(f"Unsuccessful in setting {s} to {self.settings[s]}W")
+                    # logger.error(f"Unsuccessful in setting {s} to {self.settings[s] // 1000}W")
             else:
                 if s == "tctl_temp":
                     logger.info(f"Successfully set {s} to {self.settings[s]}°C")
                 else:
-                    logger.info(f"Successfully set {s} to {self.settings[s] // 1000}W")
+                    logger.info(f"Successfully set {s} to {self.settings[s]}W")
+                    # logger.info(f"Successfully set {s} to {self.settings[s] // 1000}W")
 
     def retrieve_settings(self):
-        params = RuntimeCheck.get_valid_values()
+        try:
+            params = RuntimeCheck.get_valid_values()
+        except FileNotFoundError:
+            logger.error(f"Config: {RuntimeCheck.get_config_path()} not found")
+            sys.exit(1)
+
         for p in params:
             try:
                 if p == 'temp-limit':
                     self.settings["tctl_temp"] = int(params[p])
                 else:
-                    self.settings[p.replace('-', '_')] = int(params[p]) * 1000  # Convert W to mW
+                    self.settings[p.replace('-', '_')] = int(params[p])
+                    #self.settings[p.replace('-', '_')] = int(params[p]) * 1000  # Convert W to mW
             except:
                 logger.warning(f"Invalid value: {params[p]} detected for {p}")
 
@@ -217,11 +250,10 @@ if __name__ == "__main__":
         print("Root privileges are required")
         sys.exit(1)
 
+    logging_setup()
     d = DaemonHelper()
 
     try:
-        logging_setup()
-
         # Check if ryzen_smu is loaded
         kmods = subprocess.Popen(["lsmod"], stdout=subprocess.PIPE).communicate()[0].decode("utf-8").split()
         if not "ryzen_smu" in kmods:
@@ -242,7 +274,8 @@ if __name__ == "__main__":
     except SystemExit as e:
         logger.info(f"Daemon exited with status: {e}")
     finally:
-        d.cleanup_ryzenadj()
+        if d.ryzenadj is not None:
+            d.cleanup_ryzenadj()
         # Remove lock file upon exiting
         fcntl.flock(d.lock_fd, fcntl.LOCK_UN)
         os.close(d.lock_fd)
