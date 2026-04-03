@@ -17,21 +17,21 @@ Ryzen Mobile Limiter's purpose is to enforce APU temperature and power limits. D
 Setting temperature limit of 90°C:
 
     ./ryzenm-limit --temp-limit 90
-or in a more concise format:
+> or in a more concise format:
 
     ./ryzenm-limit -t 90
 ### Power Limit
 Setting overall power limit to 40W:
 
     ./ryzenm-limit --power-limit 40
-or
+> or
 
     ./ryzenm-limit -p 40
 
 For more fine-tuned power limits to account for performance in short bursts:
 
     ./ryzenm-limit --stapm-limit=35 --fast-limit=54 --slow-limit=45
-or
+> or
 
     ./ryzenm-limit -q 35 54 45
 More information on these particular options are documented [here](https://github.com/FlyGoat/RyzenAdj/wiki/Renoir-Tuning-Guide#--stapm-limit--stapm-limit).
@@ -50,9 +50,8 @@ Test run the daemon:
     sudo ./ryzenm-limit start
 > [!NOTE]
 > If the daemon doesn't start, you need to have the [ryzen_smu](https://github.com/amkillam/ryzen_smu) kernel module installed and loaded (which is mentioned in the guide above) or have the kernel parameter ```iomem=relaxed``` loaded at boot. A successful initialisation should show the message below without errors:
-> ```bash
-> [INFO] yyyy-mm-dd hh:mm:ss - Started RyzenMobileLimiter daemon
-> ```
+ 
+    [INFO] yyyy-mm-dd hh:mm:ss - Started RyzenMobileLimiter daemon
 > On a separate terminal, run a command to check if the daemon has successfully processed it (Example: ```./ryzenm-limit -t 90 -p 35```):
  
     [INFO] yyyy-mm-dd hh:mm:ss - Successfully set tctl_temp to 90°C
