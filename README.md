@@ -52,7 +52,7 @@ Test run the daemon:
 > If the daemon doesn't start, you need to have the [ryzen_smu](https://github.com/amkillam/ryzen_smu) kernel module installed and loaded (which is mentioned in the guide above) or have the kernel parameter ```iomem=relaxed``` loaded at boot. A successful initialisation should show the message below without errors:
 > ```bash
 [INFO] yyyy-mm-dd hh:mm:ss - Started RyzenMobileLimiter daemon
-```
+> ```
 > On a separate terminal, run a command to check if the daemon has successfully processed it (Example: ```./ryzenm-limit -t 90 -p 35```):
  
     [INFO] yyyy-mm-dd hh:mm:ss - Successfully set tctl_temp to 90°C
