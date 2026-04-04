@@ -262,7 +262,15 @@ class ParseArgs(argparse.ArgumentParser):
                         print(f"W\t\t| {int(self.ryzenadj.get_limit(param.replace('-', '_')))}W\t\t|")
             print("\t-------------------------------------------------\n")
         else:
-            pass
+            for param in RuntimeCheck.get_config_params():
+                if param in config:
+                    print("\t-------------------------")
+                    print(f"\t| {Ansi.style_str(param, 'reset', 'bold')}\t| {config[param]}", end='')
+                    if param == "temp-limit":
+                        print("°C\t|")
+                    else:
+                        print("W\t|")
+            print("\t-------------------------\n")
 
 
 if __name__ == "__main__":
