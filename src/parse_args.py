@@ -3,6 +3,7 @@
 import argparse, sys, os
 from ansi import Ansi
 from runtime_check import RuntimeCheck
+from management import RyzenAdj
 
 
 class RemoveMetavars(argparse.HelpFormatter):
@@ -36,6 +37,7 @@ class ParseArgs(argparse.ArgumentParser):
         self.fine_power_group = self.__setup_fine_power_group()
 
         self.args = self.parse_args()
+        self.ryzenadj = None
 
         if len(sys.argv) == 1:  # Print help page if no arguments are provided
             self.print_help()
@@ -141,10 +143,43 @@ class ParseArgs(argparse.ArgumentParser):
                 "-c/--slow-limit"
             )
 
+    # If user requests to apply settings immediately when daemon isn't active, libryzenadj would be utilised
+    # Settings would be written to config regardless of choice
+    def __apply_args(self, arg_type, arg_val, apply_immediately):
+        if apply_immediately:
+            if arg_type == "temp-limit":
+                self.ryzenadj.set_limit("tctl_temp", arg_val)
+            else:
+                self.ryzenadj.set_limit(arg_type.replace('-', '_'), arg_val)
+        RuntimeCheck.config_entry(arg_type, arg_val)
+
     def __write_to_config(self):
-        if RuntimeCheck.get_src_path() == RuntimeCheck.INSTALLED_SRC_PATH and os.geteuid() != 0:
+        if RuntimeCheck.get_path("src") == RuntimeCheck.INSTALLED_SRC_PATH and os.geteuid() != 0:
             print("Root privileges are required")
             sys.exit(1)
+
+        apply_immediately = False
+        # Request user to apply settings immediately is daemon isn't active
+        # Values might not persist and the system might change the limits at any given time
+        # The config will not reflect those changes made by the system
+        if not self.daemon_is_active:
+            inp = input("Would you like to apply settings immediately? (y/n): ").lower()
+            while not (inp == 'y' or inp == 'n'):
+                if inp != 'y' and inp != 'n':
+                    print(f"Invalid input: {inp}")
+                    inp = input("Would you like to apply settings immediately? (y/n): ").lower()
+            if inp == 'y':
+                apply_immediately = True
+            if apply_immediately and os.geteuid() != 0:
+                print("Root privileges are required")
+                sys.exit(1)
+            elif apply_immediately and os.geteuid() == 0:
+                ryzenadj_path = RuntimeCheck.get_path("lib")
+                try:
+                    self.ryzenadj = RyzenAdj(ryzenadj_path)
+                except:
+                    print(f"libryzenadj.so is required to apply these settings: Could not open {ryzenadj_path}")
+                    sys.exit(1)
 
         try:
             RuntimeCheck.read_config()
@@ -153,38 +188,40 @@ class ParseArgs(argparse.ArgumentParser):
 
         if self.args.temp_limit is not None:
             print(f"Setting CPU temperature limit to {self.args.temp_limit}°C")
-            RuntimeCheck.config_entry("temp-limit", self.args.temp_limit)
+            self.__apply_args("temp-limit", self.args.temp_limit, apply_immediately)
 
         if self.args.power_limit is not None:
             print(f"Setting CPU power limit to {self.args.power_limit}W")
-            RuntimeCheck.config_entry("stapm-limit", self.args.power_limit)
-            RuntimeCheck.config_entry("fast-limit", self.args.power_limit)
-            RuntimeCheck.config_entry("slow-limit", self.args.power_limit)
+            for a in RuntimeCheck.get_config_params()[1:]:
+                self.__apply_args(a, self.args.power_limit, apply_immediately)
         elif self.args.power_limits is not None:
             print(f"Setting CPU power limits:")
             print(f"\tSTAPM:    {self.args.power_limits[0]}W")
             print(f"\tFAST_PPT: {self.args.power_limits[1]}W")
             print(f"\tSLOW_PPT: {self.args.power_limits[2]}W")
-            RuntimeCheck.config_entry("stapm-limit", self.args.power_limits[0])
-            RuntimeCheck.config_entry("fast-limit", self.args.power_limits[1])
-            RuntimeCheck.config_entry("slow-limit", self.args.power_limits[2])
+            for i, a in enumerate(RuntimeCheck.get_config_params()[1:]):
+                self.__apply_args(a, self.args.power_limits[i], apply_immediately)
         elif self.args.power_limits is None:
             if self.args.stapm_limit is not None:
                 print(f"Setting STAPM limit to {self.args.stapm_limit}W")
-                RuntimeCheck.config_entry("stapm-limit", self.args.stapm_limit)
+                self.__apply_args("stapm-limit", self.args.stapm_limit, apply_immediately)
             if self.args.fast_limit is not None:
                 print(f"Setting FAST_PPT limit to {self.args.fast_limit}W")
-                RuntimeCheck.config_entry("fast-limit", self.args.fast_limit)
+                self.__apply_args("fast-limit", self.args.fast_limit, apply_immediately)
             if self.args.slow_limit is not None:
                 print(f"Setting SLOW_PPT limit to {self.args.slow_limit}W")
-                RuntimeCheck.config_entry("slow-limit", self.args.slow_limit)
+                self.__apply_args("slow-limit", self.args.slow_limit, apply_immediately)
 
         RuntimeCheck.finalise_config()
 
-        if not self.daemon_is_active:
+        if not self.daemon_is_active and apply_immediately == 'n':
             print(Ansi.style_str("Please enable daemon to apply settings", "red", "bold"))
 
     def __print_info(self):
+        if os.geteuid() != 0:
+            print("Root privileges are required")
+            sys.exit(1)
+
         try:
             with open("/proc/cpuinfo", 'r') as f:
                 for line in f:
@@ -195,19 +232,34 @@ class ParseArgs(argparse.ArgumentParser):
         except:
             print("Can't retrieve CPU model")
 
-        print(Ansi.style_str("*These values are extrapolated from configuration and may not be reflective of applied values", "reset", "bold"))
+        try:
+            config = RuntimeCheck.get_valid_values()
+        except:
+            print("Config not found")
+            sys.exit(1)
 
-        RuntimeCheck.read_config()
-        config = RuntimeCheck._valid_values
-        for param in RuntimeCheck.config_params:
+        ryzenadj_path = RuntimeCheck.get_path("lib")
+        try:
+            self.ryzenadj = RyzenAdj(ryzenadj_path)
+        except:
+            print(f"libryzenadj.so is required to read actual CPU limits: Could not open {ryzenadj_path}")
+            sys.exit(1)
+
+        self.ryzenadj.refresh_table()
+
+        #print(Ansi.style_str("*These values are extrapolated from configuration and may not be reflective of applied values", "reset", "bold"))
+
+        print("\t\t\t-------------------")
+        print(f"\t\t\t| {Ansi.style_str('Config', 'reset', 'bold')} | {Ansi.style_str('Actual', 'reset', 'bold')} |")
+        for param in RuntimeCheck.get_config_params():
             if param in config:
-                print("\t-------------------------")
+                print("\t-----------------------------------")
                 print(f"\t| {Ansi.style_str(param, 'reset', 'bold')}\t| {config[param]}", end='')
                 if param == "temp-limit":
-                    print("°C\t|")
+                    print(f"°C\t | {int(self.ryzenadj.get_limit('tctl_temp'))}°C\t  |")
                 else:
-                    print("W\t|")
-        print("\t-------------------------\n")
+                    print(f"W\t | {int(self.ryzenadj.get_limit(param.replace('-', '_')))}W\t  |")
+        print("\t-----------------------------------\n")
 
 
 if __name__ == "__main__":

@@ -1,14 +1,23 @@
 import os, fcntl
 
 
+# Assigns appropriate file paths, power management values, and configuration validation during program runtime
 class RuntimeCheck:
     INSTALLED_SRC_PATH = "/usr/local/src/ryzenm-limit"
     INSTALLED_CONFIG_PATH = "/etc/ryzenm-limit/ryzenm-limit.conf"
+    INSTALLED_LIB_PATH = "/usr/local/lib/ryzenm-limit/libryzenadj.so"
+    INSTALLED_LOG_PATH = "/var/log/ryzenm-limit"
 
     LOCK_PATH = "/run/lock/ryzenm-limit.lock"
 
     src_path = os.path.dirname(os.path.abspath(__file__))
     config_path = None
+    lib_path = None
+    log_path = None
+
+    PROJECT_CONFIG_PATH = os.path.realpath(src_path + "/../config/ryzenm-limit.conf")
+    PROJECT_LIB_PATH = os.path.realpath(src_path + "/../lib/libryzenadj.so")
+    PROJECT_LOG_PATH = os.path.realpath(src_path + "/../logs")
 
     config_params = [
         "temp-limit",
@@ -36,18 +45,8 @@ class RuntimeCheck:
             return True     # Lock held, daemon is running
 
     @classmethod
-    def find_config(cls):
-        # Default configuration path at project root
-        config_path = os.path.realpath(cls.src_path + "/../config/ryzenm-limit.conf")
-
-        if cls.src_path == cls.INSTALLED_SRC_PATH:
-            config_path = cls.INSTALLED_CONFIG_PATH
-
-        return config_path
-
-    @classmethod
     def read_config(cls):
-        with open(cls.get_config_path(), 'r') as f:
+        with open(cls.get_path("config"), 'r') as f:
             for ln, line in enumerate(f):
                 cls._config_content.append(line)
                 ll = line.strip().split('=')
@@ -111,11 +110,11 @@ class RuntimeCheck:
         return cls.config_params
 
     @classmethod
-    def get_src_path(cls):
-        return cls.src_path
+    def get_path(cls, path_type):
+        if getattr(cls, path_type + "_path") is None:
+            path = getattr(cls, "PROJECT_" + path_type.upper() + "_PATH")
+            if cls.src_path == cls.INSTALLED_SRC_PATH:
+                path = getattr(cls, "INSTALLED_" + path_type.upper() + "_PATH")
+            setattr(cls, path_type + "_path", path)
 
-    @classmethod
-    def get_config_path(cls):
-        if cls.config_path is None:
-            cls.config_path = cls.find_config()
-        return cls.config_path
+        return getattr(cls, path_type + "_path")

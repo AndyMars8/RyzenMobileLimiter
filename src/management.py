@@ -1,5 +1,7 @@
-import sys, os, fcntl, ctypes, time
+import sys, os, ctypes
 
+
+# Sets up RyzenAdj dynamic library
 class RyzenAdj:
     def __init__(self, ryzenadj_path):
         self.settings = [
@@ -10,9 +12,9 @@ class RyzenAdj:
         ]
         self.lib = ctypes.CDLL(ryzenadj_path)
         self.ryzenadj = None
-        self.setup()
+        self.__setup()
 
-    def setup(self):
+    def __setup(self):
         self.lib.init_ryzenadj.restype = ctypes.c_void_p
 
         self.lib.cleanup_ryzenadj.restype = ctypes.c_void_p
@@ -30,32 +32,18 @@ class RyzenAdj:
     def cleanup(self):
         return self.lib.cleanup_ryzenadj(self.ryzenadj)
 
+    # PM table requires refresh to retrieve up-to-date values when using get_*
     def refresh_table(self):
         return self.lib.refresh_table(self.ryzenadj)
 
-    def get_tctl_temp(self):
-        return self.lib.get_tctl_temp(self.ryzenadj)
+    def get_limit(self, limit_type):
+        return getattr(self.lib, "get_" + limit_type)(self.ryzenadj)
 
-    def set_tctl_temp(self, val):
-        self.lib.set_tctl_temp(self.ryzenadj, val)
-
-    def get_stapm_limit(self):
-        return self.lib.get_stapm_limit(self.ryzenadj)
-
-    def set_stapm_limit(self, val):
-        self.lib.set_stapm_limit(self.ryzenadj, val * 1000)
-
-    def get_fast_limit(self):
-        return self.lib.get_fast_limit(self.ryzenadj)
-
-    def set_fast_limit(self, val):
-        self.lib.set_fast_limit(self.ryzenadj, val * 1000)
-
-    def get_slow_limit(self):
-        return self.lib.get_slow_limit(self.ryzenadj)
-
-    def set_slow_limit(self, val):
-        self.lib.set_slow_limit(self.ryzenadj, val * 1000)
+    def set_limit(self, limit_type, val):
+        if limit_type == "tctl_temp":
+            getattr(self.lib, "set_" + limit_type)(self.ryzenadj, val)
+        else:
+            getattr(self.lib, "set_" + limit_type)(self.ryzenadj, val * 1000)
 
     def get_settings(self):
         return self.settings
