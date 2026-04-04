@@ -218,9 +218,9 @@ class ParseArgs(argparse.ArgumentParser):
             print(Ansi.style_str("Please enable daemon to apply settings", "red", "bold"))
 
     def __print_info(self):
-        if os.geteuid() != 0:
-            print("Root privileges are required")
-            sys.exit(1)
+        # if os.geteuid() != 0:
+        #     print("Root privileges are required")
+        #     sys.exit(1)
 
         try:
             with open("/proc/cpuinfo", 'r') as f:
@@ -238,28 +238,31 @@ class ParseArgs(argparse.ArgumentParser):
             print("Config not found")
             sys.exit(1)
 
-        ryzenadj_path = RuntimeCheck.get_path("lib")
-        try:
-            self.ryzenadj = RyzenAdj(ryzenadj_path)
-        except:
-            print(f"libryzenadj.so is required to read actual CPU limits: Could not open {ryzenadj_path}")
-            sys.exit(1)
-
-        self.ryzenadj.refresh_table()
-
         #print(Ansi.style_str("*These values are extrapolated from configuration and may not be reflective of applied values", "reset", "bold"))
 
-        print("\t\t\t-------------------")
-        print(f"\t\t\t| {Ansi.style_str('Config', 'reset', 'bold')} | {Ansi.style_str('Actual', 'reset', 'bold')} |")
-        for param in RuntimeCheck.get_config_params():
-            if param in config:
-                print("\t-----------------------------------")
-                print(f"\t| {Ansi.style_str(param, 'reset', 'bold')}\t| {config[param]}", end='')
-                if param == "temp-limit":
-                    print(f"°C\t | {int(self.ryzenadj.get_limit('tctl_temp'))}°C\t  |")
-                else:
-                    print(f"W\t | {int(self.ryzenadj.get_limit(param.replace('-', '_')))}W\t  |")
-        print("\t-----------------------------------\n")
+        if os.geteuid() == 0:
+            ryzenadj_path = RuntimeCheck.get_path("lib")
+            try:
+                self.ryzenadj = RyzenAdj(ryzenadj_path)
+            except:
+                print(f"libryzenadj.so is required to read actual CPU limits: Could not open {ryzenadj_path}")
+                sys.exit(1)
+
+            self.ryzenadj.refresh_table()
+
+            print("\t\t\t---------------------------------")
+            print(f"\t\t\t| {Ansi.style_str('Config', 'reset', 'bold')}\t| {Ansi.style_str('Actual', 'reset', 'bold')}\t|")
+            for param in RuntimeCheck.get_config_params():
+                if param in config:
+                    print("\t-------------------------------------------------")
+                    print(f"\t| {Ansi.style_str(param, 'reset', 'bold')}\t| {config[param]}", end='')
+                    if param == "temp-limit":
+                        print(f"°C\t\t| {int(self.ryzenadj.get_limit('tctl_temp'))}°C\t\t|")
+                    else:
+                        print(f"W\t\t| {int(self.ryzenadj.get_limit(param.replace('-', '_')))}W\t\t|")
+            print("\t-------------------------------------------------\n")
+        else:
+            pass
 
 
 if __name__ == "__main__":
