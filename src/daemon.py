@@ -72,7 +72,7 @@ logging_config = {
 def logging_setup():
     log_path = logging_config["handlers"]["file"]["filename"]
     if not os.path.exists(log_path):
-        RuntimeCheck.create_log()
+        RuntimeCheck.create_file("log")
 
     logging.config.dictConfig(logging_config)
     queue_handler = logging.getHandlerByName("queue_handler")
@@ -170,7 +170,7 @@ class DaemonHelper:
                 except:
                     logger.warning(f"Invalid value: {params[p]} detected for {p}")
         except FileNotFoundError:
-            RuntimeCheck.create_config()
+            RuntimeCheck.create_file("config")
 
 
 def handle_quit_signal(signum, frame):

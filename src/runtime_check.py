@@ -104,28 +104,6 @@ class RuntimeCheck:
         os.rename(cls.config_path + ".tmp", cls.config_path)
 
     @classmethod
-    def create_config(cls):
-        config_dir = os.path.dirname(cls.config_path)
-        os.makedirs(config_dir, exist_ok=True)
-        config_file = pathlib.Path(cls.config_path)
-        config_file.touch(exist_ok=True)
-        if 'SUDO_UID' in os.environ and 'SUDO_GID' in os.environ and cls.config_path != cls.INSTALLED_CONFIG_PATH:
-            uid, gid = int(os.environ['SUDO_UID']), int(os.environ['SUDO_GID'])
-            os.chown(config_dir, uid, gid)
-            os.chown(cls.config_path, uid, gid)
-
-    @classmethod
-    def create_log(cls):
-        log_dir = os.path.dirname(cls.log_path)
-        os.makedirs(log_dir, exist_ok=True)
-        log_file = pathlib.Path(cls.log_path)
-        log_file.touch(exist_ok=True)
-        if 'SUDO_UID' in os.environ and 'SUDO_GID' in os.environ and log_dir != '/var/log/ryzenm-limit':
-            uid, gid = int(os.environ['SUDO_UID']), int(os.environ['SUDO_GID'])
-            os.chown(log_dir, uid, gid)
-            os.chown(cls.log_path, uid, gid)
-
-    @classmethod
     def get_valid_values(cls):
         cls._valid_values.clear()
         cls.read_config()
@@ -144,3 +122,15 @@ class RuntimeCheck:
             setattr(cls, path_type + "_path", path)
 
         return getattr(cls, path_type + "_path")
+
+    @classmethod
+    def create_file(cls, file_type):
+        file_path = getattr(cls, file_type + "_path")
+        file_dir = os.path.dirname(file_path)
+        os.makedirs(file_dir, exist_ok=True)
+        path = pathlib.Path(file_path)
+        path.touch(exist_ok=True)
+        if 'SUDO_UID' in os.environ and 'SUDO_GID' in os.environ and file_dir != getattr(cls, "INSTALLED_" + file_type.upper() + "_PATH"):
+            uid, gid = int(os.environ['SUDO_UID']), int(os.environ['SUDO_GID'])
+            os.chown(file_dir, uid, gid)
+            os.chown(file_path, uid, gid)

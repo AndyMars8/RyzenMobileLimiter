@@ -1,4 +1,5 @@
 # This program parses valid arguments for the daemon to process by writing them to ryzenm-limit.conf
+# If daemon isn't active, user would be provided the option to write to config or apply immediately
 
 import argparse, sys, os
 from ansi import Ansi
