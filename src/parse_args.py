@@ -165,7 +165,8 @@ class ParseArgs(argparse.ArgumentParser):
         if not self.daemon_is_active:
             inp = input("Would you like to apply settings immediately? (y/n): ").lower()
             while not (inp == 'y' or inp == 'n'):
-                if inp != 'y' and inp != 'n':
+                #if inp != 'y' and inp != 'n':
+                if not (inp == 'y' or inp == 'n'):
                     print(f"Invalid input: {inp}")
                     inp = input("Would you like to apply settings immediately? (y/n): ").lower()
             if inp == 'y':
@@ -218,10 +219,6 @@ class ParseArgs(argparse.ArgumentParser):
             print(Ansi.style_str("Please enable daemon to apply settings", "red", "bold"))
 
     def __print_info(self):
-        # if os.geteuid() != 0:
-        #     print("Root privileges are required")
-        #     sys.exit(1)
-
         try:
             with open("/proc/cpuinfo", 'r') as f:
                 for line in f:
@@ -237,8 +234,6 @@ class ParseArgs(argparse.ArgumentParser):
         except:
             print("Config not found")
             sys.exit(1)
-
-        #print(Ansi.style_str("*These values are extrapolated from configuration and may not be reflective of applied values", "reset", "bold"))
 
         if os.geteuid() == 0:
             ryzenadj_path = RuntimeCheck.get_path("lib")
@@ -262,6 +257,7 @@ class ParseArgs(argparse.ArgumentParser):
                         print(f"W\t\t| {int(self.ryzenadj.get_limit(param.replace('-', '_')))}W\t\t|")
             print("\t-------------------------------------------------\n")
         else:
+            print(Ansi.style_str("*These values are extrapolated from configuration and may not be reflective of applied values", "reset", "bold"))
             for param in RuntimeCheck.get_config_params():
                 if param in config:
                     print("\t-------------------------")

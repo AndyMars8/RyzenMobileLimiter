@@ -1,6 +1,6 @@
 # This program is the daemon for ryzenm-limit
 
-import fcntl, os, sys, signal, time, shutil, subprocess, logging, atexit, pathlib
+import fcntl, os, sys, signal, time, shutil, subprocess, logging, atexit
 import logging.config
 from runtime_check import RuntimeCheck
 from management import RyzenAdj
@@ -44,7 +44,7 @@ logging_config = {
             "class": "logging.handlers.RotatingFileHandler",
             "level": "DEBUG",
             "formatter": "simple",
-            "filename": f"{RuntimeCheck.get_path("log")}/ryzenm-limit.log",
+            "filename": f"{RuntimeCheck.get_path("log")}",
             "maxBytes": 1000000,
             "backupCount": 2
         },
@@ -71,15 +71,8 @@ logging_config = {
 
 def logging_setup():
     log_path = logging_config["handlers"]["file"]["filename"]
-    log_dir = os.path.dirname(log_path)
-    os.makedirs(log_dir, exist_ok=True)
-    log_file = pathlib.Path(log_path)
-    log_file.touch(exist_ok=True)
-
-    if 'SUDO_UID' in os.environ and 'SUDO_GID' in os.environ and log_dir != '/var/log/ryzenm-limit':
-        uid, gid = int(os.environ['SUDO_UID']), int(os.environ['SUDO_GID'])
-        os.chown(log_dir, uid, gid)
-        os.chown(log_path, uid, gid)
+    if not os.path.exists(log_path):
+        RuntimeCheck.create_log()
 
     logging.config.dictConfig(logging_config)
     queue_handler = logging.getHandlerByName("queue_handler")
@@ -134,9 +127,7 @@ class DaemonHelper:
 
         # Reapply user limits if a reset has been detected or user has changed settings
         for s in self.settings:
-            #actual_setting = int(getattr(self.ryzenadj, "get_" + s)())
             actual_setting = int(self.ryzenadj.get_limit(s))
-            #print(s, actual_setting)
             if (s == "tctl_temp" and actual_setting != self.settings[s]) or (
                 s != "tctl_temp" and actual_setting != self.settings[s]):
                 logger.info("Reapplying settings for persistence")
@@ -148,7 +139,6 @@ class DaemonHelper:
         for s in self.settings:
             # Skip setting if it hasn't changed
             try:
-                #actual_setting = int(getattr(self.ryzenadj, "get_" + s)())
                 actual_setting = int(self.ryzenadj.get_limit(s))
                 if (s == "tctl_temp" and actual_setting == self.settings[s]) or (
                     s != "tctl_temp" and actual_setting == self.settings[s]):
@@ -157,7 +147,6 @@ class DaemonHelper:
                 pass
 
             # Change setting
-            #if getattr(self.ryzenadj, "set_" + s)(self.settings[s]):
             if self.ryzenadj.set_limit(s, self.settings[s]):
                 if s == "tctl_temp":
                     logger.error(f"Unsuccessful in setting {s} to {self.settings[s]}°C")
@@ -172,18 +161,16 @@ class DaemonHelper:
     def retrieve_settings(self):
         try:
             params = RuntimeCheck.get_valid_values()
+            for p in params:
+                try:
+                    if p == 'temp-limit':
+                        self.settings["tctl_temp"] = int(params[p])
+                    else:
+                        self.settings[p.replace('-', '_')] = int(params[p])
+                except:
+                    logger.warning(f"Invalid value: {params[p]} detected for {p}")
         except FileNotFoundError:
-            logger.error(f"Config: {RuntimeCheck.get_path("config")} not found")
-            sys.exit(1)
-
-        for p in params:
-            try:
-                if p == 'temp-limit':
-                    self.settings["tctl_temp"] = int(params[p])
-                else:
-                    self.settings[p.replace('-', '_')] = int(params[p])
-            except:
-                logger.warning(f"Invalid value: {params[p]} detected for {p}")
+            RuntimeCheck.create_config()
 
 
 def handle_quit_signal(signum, frame):
