@@ -71,7 +71,7 @@ logging_config = {
 
 def logging_setup():
     log_path = logging_config["handlers"]["file"]["filename"]
-    if not os.path.exists(log_path):
+    if not log_path.exists():
         RuntimeCheck.create_file("log")
 
     logging.config.dictConfig(logging_config)
@@ -83,8 +83,7 @@ def logging_setup():
 
 class DaemonHelper:
     def __init__(self):
-        self.src_path = RuntimeCheck.get_path("src")
-        self.lockfile = RuntimeCheck.LOCK_PATH
+        self.lockfile = str(RuntimeCheck.LOCK_PATH)
         self.lock_fd = self.run_once(self.lockfile)
         self.settings = {}
         self.last_mtime = 0

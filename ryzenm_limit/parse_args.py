@@ -121,10 +121,10 @@ class ParseArgs(argparse.ArgumentParser):
         return fine_power_group
 
     def __power_args_exclusion(self):
-        if self.args.power_limit is not None and (
-            self.args.stapm_limit is not None or
-            self.args.fast_limit is not None or
-            self.args.slow_limit is not None
+        if self.args.power_limit is not None and not (
+            self.args.stapm_limit is None and
+            self.args.fast_limit is None and
+            self.args.slow_limit is None
         ):
             self.error(
                 "argument -p/--power-limit cannot be used with " +
@@ -132,10 +132,10 @@ class ParseArgs(argparse.ArgumentParser):
                 "-b/--fast-limit or " +
                 "-c/--slow-limit"
             )
-        elif self.args.power_limits is not None and (
-            self.args.stapm_limit is not None or
-            self.args.fast_limit is not None or
-            self.args.slow_limit is not None
+        elif self.args.power_limits is not None and not (
+            self.args.stapm_limit is None and
+            self.args.fast_limit is None and
+            self.args.slow_limit is None
         ):
             self.error(
                 "argument -q/--power-limits cannot be used with " +

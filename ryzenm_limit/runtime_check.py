@@ -1,23 +1,37 @@
-import os, fcntl, pathlib
+import os, fcntl, re
+from pathlib import Path
 
 
 # Assigns appropriate file paths, power management values, and configuration validation during program runtime
 class RuntimeCheck:
-    INSTALLED_SRC_PATH = "/usr/local/src/ryzenm-limit"
-    INSTALLED_CONFIG_PATH = "/etc/ryzenm-limit/ryzenm-limit.conf"
-    INSTALLED_LIB_PATH = "/usr/local/lib/ryzenm-limit/libryzenadj.so"
-    INSTALLED_LOG_PATH = "/var/log/ryzenm-limit"
-
-    LOCK_PATH = "/run/lock/ryzenm-limit.lock"
-
-    src_path = os.path.dirname(os.path.abspath(__file__))
+    src_path = Path(__file__).parent
     config_path = None
     lib_path = None
     log_path = None
 
-    PROJECT_CONFIG_PATH = os.path.realpath(src_path + "/../config/ryzenm-limit.conf")
-    PROJECT_LIB_PATH = os.path.realpath(src_path + "/../lib/libryzenadj.so")
-    PROJECT_LOG_PATH = os.path.realpath(src_path + "/../logs/ryzenm-limit.log")
+    LOCK_PATH = Path("/run/lock/ryzenm-limit.lock")
+
+    INSTALLED_SRC_PATH = Path("/usr/local/src/ryzenm-limit")
+    INSTALLED_CONFIG_PATH = Path("/etc/ryzenm-limit/ryzenm-limit.conf")
+    INSTALLED_LIB_PATH = Path("/usr/local/lib/ryzenm-limit/libryzenadj.so")
+    INSTALLED_LOG_PATH = Path("/var/log/ryzenm-limit/ryzenm-limit.log")
+
+    PROJECT_CONFIG_PATH = (src_path / "../config/ryzenm-limit.conf").resolve()
+    PROJECT_LIB_PATH = (src_path / "libryzenadj.so").resolve()
+    PROJECT_LOG_PATH = (src_path / "../logs/ryzenm-limit.log").resolve()
+
+    USER_HOME_CONFIG_PATH = Path.home() / ".ryzenm-limit/config/ryzenm-limit.conf"
+    USER_HOME_LIB_PATH = PROJECT_LIB_PATH
+    USER_HOME_LOG_PATH = Path.home() / ".ryzenm-limit/log/ryzenm-limit.log"
+
+    OPT_SRC_PATH = Path("/opt/ryzenm-limit/src")
+    OPT_CONFIG_PATH = Path("/etc/opt/ryzenm-limit/ryzenm-limit.conf")
+    OPT_LIB_PATH = Path("/opt/ryzenm-limit/lib/libryzenadj.so")
+    OPT_LOG_PATH = Path("/var/opt/ryzenm-limit/log/ryzenm-limit.log")
+
+    SYSTEM_PKG_SRC_PATH_PATTERN = "/usr/.*lib.*/python3.*/site-packages"
+    HOME_PKG_SRC_PATH_PATTERN = "/home/.*lib.*/python3.*/site-packages"
+    OPT_PKG_SRC_PATH_PATTERN = "/opt/.*lib.*/python3.*/site-packages"
 
     config_params = [
         "temp-limit",
@@ -32,10 +46,11 @@ class RuntimeCheck:
 
     _write_params = {}
 
+    # Check is daemon is running
     @classmethod
     def check_daemon_status(cls):
         try:
-            fd = open(cls.LOCK_PATH, 'r')
+            fd = cls.LOCK_PATH.open('r')
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             fd.close()
             return False    # No lock held, daemon not running
@@ -46,7 +61,7 @@ class RuntimeCheck:
 
     @classmethod
     def read_config(cls):
-        with open(cls.get_path("config"), 'r') as f:
+        with cls.get_path("config").open('r') as f:
             for ln, line in enumerate(f):
                 cls._config_content.append(line)
                 ll = line.strip().split('=')
@@ -79,6 +94,7 @@ class RuntimeCheck:
                 else:
                     cls._invalid_lines.add(ln)
 
+    # Prepare valid parameters for config
     @classmethod
     def config_entry(cls, param, value):
         if param in cls._valid_params:  # Replace existing parameter with modified value
@@ -87,21 +103,20 @@ class RuntimeCheck:
         else:   # Add new parameter entry
             cls._write_params[param] = value
 
+    # Write all valid lines to config
     @classmethod
     def finalise_config(cls):
         for param in cls._valid_params: # Prepare to rewrite unmodified parameters
             cls._config_content[cls._valid_params[param]] = f"{param}={cls._valid_values[param]}\n"
 
-        if not os.path.exists(cls.config_path):
-            cls.create_config()
-
-        with open(cls.config_path + ".tmp", 'w') as f:
+        temp_config = cls.config_path.with_suffix(cls.config_path.suffix + ".tmp")
+        with temp_config.open('w') as f:
             for ln, line in enumerate(cls._config_content):
                 if ln not in cls._invalid_lines:
                     f.write(line)
             for param in cls._write_params:
                 f.write(f"{param}={cls._write_params[param]}\n")
-        os.rename(cls.config_path + ".tmp", cls.config_path)
+        temp_config.rename(cls.config_path)
 
     @classmethod
     def get_valid_values(cls):
@@ -117,20 +132,27 @@ class RuntimeCheck:
     def get_path(cls, path_type):
         if getattr(cls, path_type + "_path") is None:
             path = getattr(cls, "PROJECT_" + path_type.upper() + "_PATH")
-            if cls.src_path == cls.INSTALLED_SRC_PATH:
+            if cls.src_path == cls.INSTALLED_SRC_PATH or re.search(cls.SYSTEM_PKG_SRC_PATH_PATTERN, str(cls.src_path)):
                 path = getattr(cls, "INSTALLED_" + path_type.upper() + "_PATH")
+            elif re.search(cls.HOME_PKG_SRC_PATH_PATTERN, str(cls.src_path)):
+                path = getattr(cls, "USER_HOME_" + path_type.upper() + "_PATH")
+            elif cls.src_path == cls.OPT_SRC_PATH or re.search(cls.OPT_SRC_PATH_PATTERN, str(cls.src_path)):
+                if cls.src_path == cls.OPT_SRC_PATH and path_type == "lib":
+                    path = cls.PROJECT_LIB_PATH
+                else:
+                    path = getattr(cls, "OPT_" + path_type.upper() + "_PATH")
             setattr(cls, path_type + "_path", path)
 
         return getattr(cls, path_type + "_path")
 
     @classmethod
     def create_file(cls, file_type):
-        file_path = getattr(cls, file_type + "_path")
-        file_dir = os.path.dirname(file_path)
+        file_path = cls.get_path(file_type)
+        file_dir = file_path.parent
         os.makedirs(file_dir, exist_ok=True)
-        path = pathlib.Path(file_path)
+        path = Path(file_path)
         path.touch(exist_ok=True)
-        if 'SUDO_UID' in os.environ and 'SUDO_GID' in os.environ and file_dir != getattr(cls, "INSTALLED_" + file_type.upper() + "_PATH"):
+        if ('SUDO_UID' and 'SUDO_GID') in os.environ and file_dir != getattr(cls, "INSTALLED_" + file_type.upper() + "_PATH"):
             uid, gid = int(os.environ['SUDO_UID']), int(os.environ['SUDO_GID'])
             os.chown(file_dir, uid, gid)
             os.chown(file_path, uid, gid)
