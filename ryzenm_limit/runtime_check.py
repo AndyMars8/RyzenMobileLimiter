@@ -150,9 +150,9 @@ class RuntimeCheck:
         file_path = cls.get_path(file_type)
         file_dir = file_path.parent
         os.makedirs(file_dir, exist_ok=True)
-        path = Path(file_path)
-        path.touch(exist_ok=True)
-        if ('SUDO_UID' and 'SUDO_GID') in os.environ and file_dir != getattr(cls, "INSTALLED_" + file_type.upper() + "_PATH"):
+        file_path.touch(exist_ok=True)
+        # Non-root user owns file if source is not in user's home directory
+        if ('SUDO_UID' and 'SUDO_GID') in os.environ and file_dir.is_relative.to(Path.home()):
             uid, gid = int(os.environ['SUDO_UID']), int(os.environ['SUDO_GID'])
             os.chown(file_dir, uid, gid)
             os.chown(file_path, uid, gid)
