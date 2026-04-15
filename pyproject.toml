@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ryzenm-limit"
+version = "0.1.0"
+description = "A simplified power management utility for laptops with AMD Ryzen APU"
+requires-python = ">=3.9"
+authors = [
+    {name = "AndyMars8"}
+]
+maintainers = [
+    {name = "AndyMars8"}
+]
+readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+
+[project.urls]
+Documentation = "https://github.com/AndyMars8/RyzenMobileLimiter#readme"
+Repository = "https://github.com/AndyMars8/RyzenMobileLimiter.git"
+Issues = "https://github.com/AndyMars8/RyzenMobileLimiter/issues"
+
+[project.scripts]
+ryzenm-limit = "ryzenm_limit:main"

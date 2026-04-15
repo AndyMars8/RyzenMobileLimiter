@@ -9,8 +9,8 @@ if [ $SCRIPT_DIR == "/usr/local/bin" ]; then
     fi
 else
     if [ "$1" == "start" ]; then
-        python3 $SCRIPT_DIR/ryzenm_limit/daemon.py
+        python3 $SCRIPT_DIR/src/ryzenm_limit/daemon.py
     else
-        python3 $SCRIPT_DIR/ryzenm_limit/parse_args.py "$@"
+        python3 $SCRIPT_DIR/src/ryzenm_limit/parse_args.py "$@"
     fi
 fi
