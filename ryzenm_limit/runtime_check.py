@@ -1,9 +1,16 @@
-import os, fcntl, re
+import os, sys, fcntl, re
 from pathlib import Path
 
 
 # Assigns appropriate file paths, power management values, and configuration validation during program runtime
 class RuntimeCheck:
+    _home_dir = Path.home()
+    _user = os.environ.get('SUDO_USER')
+    if _user:   # Acquire home directory under non-root user
+        _home_dir = Path(f'~{_user}').expanduser()
+    elif re.search("/home/.*/.*", sys.prefix):  # Acquire home directory under Python environment in non-root home directory
+        _home_dir = Path('/'.join(sys.prefix.split('/')[1:3]))
+
     src_path = Path(__file__).parent
     config_path = None
     lib_path = None
@@ -20,9 +27,9 @@ class RuntimeCheck:
     PROJECT_LIB_PATH = (src_path / "libryzenadj.so").resolve()
     PROJECT_LOG_PATH = (src_path / "../logs/ryzenm-limit.log").resolve()
 
-    USER_HOME_CONFIG_PATH = Path.home() / ".ryzenm-limit/config/ryzenm-limit.conf"
+    USER_HOME_CONFIG_PATH = _home_dir / ".ryzenm-limit/config/ryzenm-limit.conf"
     USER_HOME_LIB_PATH = PROJECT_LIB_PATH
-    USER_HOME_LOG_PATH = Path.home() / ".ryzenm-limit/log/ryzenm-limit.log"
+    USER_HOME_LOG_PATH = _home_dir / ".ryzenm-limit/log/ryzenm-limit.log"
 
     OPT_SRC_PATH = Path("/opt/ryzenm-limit/src")
     OPT_CONFIG_PATH = Path("/etc/opt/ryzenm-limit/ryzenm-limit.conf")
@@ -136,7 +143,7 @@ class RuntimeCheck:
                 path = getattr(cls, "INSTALLED_" + path_type.upper() + "_PATH")
             elif re.search(cls.HOME_PKG_SRC_PATH_PATTERN, str(cls.src_path)):
                 path = getattr(cls, "USER_HOME_" + path_type.upper() + "_PATH")
-            elif cls.src_path == cls.OPT_SRC_PATH or re.search(cls.OPT_SRC_PATH_PATTERN, str(cls.src_path)):
+            elif cls.src_path == cls.OPT_SRC_PATH or re.search(cls.OPT_PKG_SRC_PATH_PATTERN, str(cls.src_path)):
                 if cls.src_path == cls.OPT_SRC_PATH and path_type == "lib":
                     path = cls.PROJECT_LIB_PATH
                 else:
@@ -152,7 +159,7 @@ class RuntimeCheck:
         os.makedirs(file_dir, exist_ok=True)
         file_path.touch(exist_ok=True)
         # Non-root user owns file if source is not in user's home directory
-        if ('SUDO_UID' and 'SUDO_GID') in os.environ and file_dir.is_relative.to(Path.home()):
+        if ('SUDO_UID' and 'SUDO_GID') in os.environ and file_dir.is_relative_to(cls._home_dir):
             uid, gid = int(os.environ['SUDO_UID']), int(os.environ['SUDO_GID'])
             os.chown(file_dir, uid, gid)
             os.chown(file_path, uid, gid)

@@ -44,7 +44,7 @@ logging_config = {
             "class": "logging.handlers.RotatingFileHandler",
             "level": "DEBUG",
             "formatter": "simple",
-            "filename": f"{RuntimeCheck.get_path("log")}",
+            "filename": RuntimeCheck.get_path("log"),
             "maxBytes": 1000000,
             "backupCount": 2
         },
