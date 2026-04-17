@@ -75,7 +75,7 @@ Test run the daemon:
     [INFO] yyyy-mm-dd hh:mm:ss - Started RyzenMobileLimiter daemon
 On a separate terminal, run a command to check if the daemon has successfully processed it (Example: ```./ryzenm-limit -t 90 -p 35```):
 > [!NOTE]
-> If a limit has an identical value to that set by the system, it will be ignored and won't be logged
+> If a limit has an identical value to that set by the system, it will be ignored and won't be logged.
  
     [INFO] yyyy-mm-dd hh:mm:ss - Successfully set tctl_temp to 90°C
     [INFO] yyyy-mm-dd hh:mm:ss - Successfully set stapm_limit to 35W
