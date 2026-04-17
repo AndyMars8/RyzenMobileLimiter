@@ -91,7 +91,7 @@ After following the setup instructions above, Ryzen Mobile Limiter can be instal
     sudo cp -r src/ /usr/local/src/ryzenm-limit/
     sudo cp -r lib/ /usr/local/lib/ryzenm-limit/
     sudo cp -r config/ /etc/ryzenm-limit/
-> Or simply run
+> Or simply run:
 
     sudo make install
 > [!NOTE]
