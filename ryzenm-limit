@@ -7,6 +7,12 @@ if [ $SCRIPT_DIR == "/usr/local/bin" ]; then
     else
         python3 $SCRIPT_DIR/../src/ryzenm-limit/parse_args.py "$@"
     fi
+elif [ $SCRIPT_DIR == "/opt/ryzenm-limit" ]; then
+    if [ "$1" == "start" ]; then
+        python3 $SCRIPT_DIR/src/daemon.py
+    else
+        python3 $SCRIPT_DIR/src/parse_args.py "$@"
+    fi
 else
     if [ "$1" == "start" ]; then
         python3 $SCRIPT_DIR/src/ryzenm_limit/daemon.py

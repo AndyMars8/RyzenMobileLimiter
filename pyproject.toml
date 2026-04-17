@@ -24,3 +24,13 @@ Issues = "https://github.com/AndyMars8/RyzenMobileLimiter/issues"
 
 [project.scripts]
 ryzenm-limit = "ryzenm_limit:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = false
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"ryzenm_limit" = ["*.so"]

@@ -155,7 +155,10 @@ class ParseArgs(argparse.ArgumentParser):
         RuntimeCheck.config_entry(arg_type, arg_val)
 
     def __write_to_config(self):
-        if RuntimeCheck.get_path("src") == RuntimeCheck.INSTALLED_SRC_PATH and os.geteuid() != 0:
+        if not RuntimeCheck.get_path("src").is_relative_to(RuntimeCheck._home_dir) and os.geteuid() != 0:
+            print(RuntimeCheck.get_path("src"))
+            print(RuntimeCheck.get_path("src").is_relative_to(RuntimeCheck._home_dir))
+            print(RuntimeCheck._home_dir)
             print("Root privileges are required")
             sys.exit(1)
 
@@ -166,7 +169,6 @@ class ParseArgs(argparse.ArgumentParser):
         if not self.daemon_is_active:
             inp = input("Would you like to apply settings immediately? (y/n): ").lower()
             while not (inp == 'y' or inp == 'n'):
-                #if inp != 'y' and inp != 'n':
                 if not (inp == 'y' or inp == 'n'):
                     print(f"Invalid input: {inp}")
                     inp = input("Would you like to apply settings immediately? (y/n): ").lower()
@@ -216,8 +218,10 @@ class ParseArgs(argparse.ArgumentParser):
 
         RuntimeCheck.finalise_config()
 
-        if not self.daemon_is_active and apply_immediately == 'n':
+        if not self.daemon_is_active and not apply_immediately:
             print(Ansi.style_str("Please enable daemon to apply settings", "red", "bold"))
+        elif apply_immediately:
+            print(Ansi.style_str("Settings might not persist unless daemon is active", "red", "bold"))
 
     def __print_info(self):
         try:

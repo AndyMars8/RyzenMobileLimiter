@@ -3,7 +3,7 @@ Description=Ryzen Mobile Limiter
 After=basic.target
 
 [Service]
-ExecStart=/bin/python3 /usr/local/src/ryzenm-limit/daemon.py
+ExecStart=/usr/local/bin/ryzenm-limit start
 Type=simple
 Restart=on-failure
 
