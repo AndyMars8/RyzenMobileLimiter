@@ -1,3 +1,8 @@
+'''
+SPDX-License-Identifier: GPL-3.0-or-later
+Copyright (C) 2026 AndyMars8 <https://github.com/AndyMars8>
+RyzenMobileLimiter - A simplified power management utility for laptops with AMD Ryzen APU
+'''
 # This program is the daemon for ryzenm-limit
 
 import fcntl, os, sys, signal, time, shutil, subprocess, logging, atexit
@@ -30,7 +35,7 @@ logging_config = {
         "stdout": {
             "class": "logging.StreamHandler",
             "level": "INFO",
-            "filters": ["no_stderr"],
+            "filters": ["no_stderr"],   # Treat STDOUT and STDERR separately so that warning and error logs aren't duplicated
             "formatter": "simple",
             "stream": "ext://sys.stdout"
         },
@@ -83,19 +88,21 @@ def logging_setup():
 
 class DaemonHelper:
     def __init__(self):
-        self.lockfile = str(RuntimeCheck.LOCK_PATH)
-        self.lock_fd = self.run_once(self.lockfile)
+        self.lockfile = RuntimeCheck.LOCK_PATH
+        self.lock_fd = self.run_once()
+        self.config = RuntimeCheck.get_path("config")
         self.settings = {}
-        self.last_mtime = 0
+        self.last_mtime = os.path.getmtime(self.config)
 
         self.ryzenadj = None
 
         self.retrieve_settings()
 
     # Ensures a single instance of the daemon is running on the system by creating a lock file
-    def run_once(self, lockfile):
-        fd = os.open(lockfile, os.O_CREAT | os.O_RDWR)
-        os.chmod(lockfile, 0o644)
+    def run_once(self):
+        self.lockfile.touch(exist_ok=True)
+        self.lockfile.chmod(0o644)
+        fd = os.open(str(self.lockfile), os.O_CREAT | os.O_RDWR)
         try:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except IOError:
@@ -116,7 +123,13 @@ class DaemonHelper:
 
     def monitor(self):
         # Check if config content has changed
-        current_mtime = os.path.getmtime(RuntimeCheck.get_path("config"))
+        try:
+            current_mtime = os.path.getmtime(self.config)
+        except FileNotFoundError:
+            RuntimeCheck.create_file("config")
+            self.last_mtime = os.path.getmtime(self.config)
+            return
+
         if current_mtime != self.last_mtime:
             self.retrieve_settings()
             self.apply_settings()
@@ -127,20 +140,17 @@ class DaemonHelper:
         # Reapply user limits if a reset has been detected or user has changed settings
         for s in self.settings:
             actual_setting = int(self.ryzenadj.get_limit(s))
-            if (s == "tctl_temp" and actual_setting != self.settings[s]) or (
-                s != "tctl_temp" and actual_setting != self.settings[s]):
+            if actual_setting != self.settings[s]:
                 logger.info("Reapplying settings for persistence")
                 self.apply_settings()
                 break
-        time.sleep(1)
 
     def apply_settings(self):
         for s in self.settings:
             # Skip setting if it hasn't changed
             try:
                 actual_setting = int(self.ryzenadj.get_limit(s))
-                if (s == "tctl_temp" and actual_setting == self.settings[s]) or (
-                    s != "tctl_temp" and actual_setting == self.settings[s]):
+                if actual_setting == self.settings[s]:
                     continue
             except:
                 pass
@@ -192,7 +202,7 @@ def start():
 
     try:
         # Check if ryzen_smu is loaded
-        kmods = subprocess.Popen(["lsmod"], stdout=subprocess.PIPE).communicate()[0].decode("utf-8").split()
+        kmods = subprocess.run(["lsmod"], capture_output=True, text=True, check=True).stdout.split()
         if not "ryzen_smu" in kmods:
             logger.warning("ryzen_smu not loaded")
             # Fallback to /dev/mem
@@ -216,7 +226,7 @@ def start():
         # Remove lock file upon exiting
         fcntl.flock(d.lock_fd, fcntl.LOCK_UN)
         os.close(d.lock_fd)
-        os.unlink(d.lockfile)
+        os.unlink(str(d.lockfile))
 
 if __name__ == "__main__":
     start()

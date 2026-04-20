@@ -1,23 +1,23 @@
 VERSION		:= 0.1.0
 
 LOCAL_EXEC	:= /usr/local/bin/ryzenm-limit
-LOCAL_SRC	:= /usr/local/src/ryzenm-limit/
-LOCAL_LIB	:= /usr/local/lib/ryzenm-limit/
+LOCAL_SRC	:= /usr/local/src/ryzenm-limit
+LOCAL_LIB	:= /usr/local/lib/ryzenm-limit
 
-OPT_DIR		:= /opt/ryzenm-limit/
+OPT_DIR		:= /opt/ryzenm-limit
 OPT_EXEC	:= /opt/ryzenm-limit/ryzenm-limit
-OPT_SRC		:= /opt/ryzenm-limit/src/
-OPT_LIB		:= /opt/ryzenm-limit/lib/
-OPT_CFG		:= /etc/opt/ryzenm-limit/
+OPT_SRC		:= /opt/ryzenm-limit/src
+OPT_LIB		:= /opt/ryzenm-limit/lib
+OPT_CFG		:= /etc/opt/ryzenm-limit
 OPT_SYSTEMD_P	:= \/opt\/ryzenm-limit\/ryzenm-limit start
 
-ROOT_CFG	:= /etc/ryzenm-limit/
+ROOT_CFG	:= /etc/ryzenm-limit
 
 SYSTEMD_SVC	:= /etc/systemd/system/ryzenm-limit.service
 
 PROJ_ROOT	:= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-PROJ_SRC	:= $(PROJ_ROOT)src/ryzenm_limit/
-PROJ_SYSTEMD	:= $(PROJ_ROOT)systemd/ryzenm-limit.service
+PROJ_SRC	:= $(PROJ_ROOT)/src/ryzenm_limit
+PROJ_SYSTEMD	:= $(PROJ_ROOT)/systemd/ryzenm-limit.service
 
 .PHONY: all
 
@@ -31,13 +31,13 @@ uninstall: local-uninstall
 
 purge: local-purge
 
-local-install:
+local-install: build-ryzenadj
 	mkdir -p {$(LOCAL_SRC),$(LOCAL_LIB),$(ROOT_CFG)}
-	cp $(PROJ_ROOT)ryzenm-limit $(LOCAL_EXEC)
-	cp -r $(PROJ_SRC). $(LOCAL_SRC)
-	rm $(LOCAL_SRC)__*__.py
-	mv $(LOCAL_SRC)*.so $(LOCAL_LIB)
-	cp -r $(PROJ_ROOT)config/. $(ROOT_CFG)
+	cp $(PROJ_ROOT)/ryzenm-limit $(LOCAL_EXEC)
+	cp -r $(PROJ_SRC)/. $(LOCAL_SRC)
+	rm $(LOCAL_SRC)/__*__.py
+	mv $(LOCAL_SRC)/*.so $(LOCAL_LIB)
+	cp -r $(PROJ_ROOT)/config/. $(ROOT_CFG)
 
 local-uninstall:
 	rm $(LOCAL_EXEC)
@@ -54,13 +54,13 @@ local-uninstall-systemd: rm-systemd local-uninstall
 
 local-purge-systemd: local-uninstall-systemd rm-system-config
 
-opt-install:
+opt-install: build-ryzenadj
 	mkdir -p {$(OPT_SRC),$(OPT_LIB),$(OPT_CFG)}
-	cp $(PROJ_ROOT)ryzenm-limit $(OPT_EXEC)
-	cp -r $(PROJ_SRC). $(OPT_SRC)
-	rm $(OPT_SRC)__*__.py
-	mv $(OPT_SRC)*.so $(OPT_LIB)
-	cp -r $(PROJ_ROOT)config/. $(OPT_CFG)
+	cp $(PROJ_ROOT)/ryzenm-limit $(OPT_EXEC)
+	cp -r $(PROJ_SRC)/. $(OPT_SRC)
+	rm $(OPT_SRC)/__*__.py
+	mv $(OPT_SRC)/*.so $(OPT_LIB)
+	cp -r $(PROJ_ROOT)/config/. $(OPT_CFG)
 
 opt-uninstall:
 	rm -rf $(OPT_DIR)
@@ -88,25 +88,34 @@ rm-opt-config:
 	rm -rf $(OPT_CFG)
 
 # All pip installations assume that a virtual environment is set up
-pip-install:
+pip-install: build-ryzenadj
 	python -m build
-	python -m pip install --force $(PROJ_ROOT)dist/ryzenm_limit-$(VERSION)-py3-none-any.whl
+	python -m pip install --force $(PROJ_ROOT)/dist/ryzenm_limit-$(VERSION)-py3-none-any.whl
 
 pip-uninstall:
 	python -m pip uninstall ryzenm_limit
 
-pipx-install:
+pipx-install: build-ryzenadj
 	python -m build
-	pipx install --force $(PROJ_ROOT)dist/ryzenm_limit-$(VERSION)-py3-none-any.whl
+	pipx install --force $(PROJ_ROOT)/dist/ryzenm_limit-$(VERSION)-py3-none-any.whl
 
 pipx-uninstall:
 	pipx uninstall ryzenm_limit
 
+build-ryzenadj:
+	git clone https://github.com/FlyGoat/RyzenAdj.git $(PROJ_ROOT)/RyzenAdj
+	rm -r $(PROJ_ROOT)/RyzenAdj/win32
+	mkdir $(PROJ_ROOT)/RyzenAdj/build
+	cmake $(PROJ_ROOT)/RyzenAdj -D CMAKE_BUILD_TYPE=Release -B $(PROJ_ROOT)/RyzenAdj/build
+	$(MAKE) -C $(PROJ_ROOT)/RyzenAdj/build
+	cp $(PROJ_ROOT)/RyzenAdj/build/libryzenadj.so $(PROJ_ROOT)/src/ryzenm_limit
+
 clean: clean-logs clean-dist
-	rm -r ryzenm_limit.egg-info
+	rm -r $(PROJ_ROOT)/ryzenm_limit.egg-info
+	rm -r $(PROJ_ROOT)/RyzenAdj
 
 clean-logs:
-	rm -r $(PROJ_ROOT)logs
+	rm -r $(PROJ_ROOT)/logs
 
 clean-dist:
-	rm -r $(PROJ_ROOT)dist
+	rm -r $(PROJ_ROOT)/dist

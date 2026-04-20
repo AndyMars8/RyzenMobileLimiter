@@ -15,7 +15,7 @@ maintainers = [
 ]
 readme = "README.md"
 license = "GPL-3.0-or-later"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "licenses/lgpl-3.0.txt"]
 
 [project.urls]
 Documentation = "https://github.com/AndyMars8/RyzenMobileLimiter#readme"

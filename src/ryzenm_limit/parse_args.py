@@ -1,3 +1,8 @@
+'''
+SPDX-License-Identifier: GPL-3.0-or-later
+Copyright (C) 2026 AndyMars8 <https://github.com/AndyMars8>
+RyzenMobileLimiter - A simplified power management utility for laptops with AMD Ryzen APU
+'''
 # This program parses valid arguments for the daemon to process by writing them to ryzenm-limit.conf
 # If daemon isn't active, user would be provided the option to write to config or apply immediately
 
@@ -156,9 +161,6 @@ class ParseArgs(argparse.ArgumentParser):
 
     def __write_to_config(self):
         if not RuntimeCheck.get_path("src").is_relative_to(RuntimeCheck._home_dir) and os.geteuid() != 0:
-            print(RuntimeCheck.get_path("src"))
-            print(RuntimeCheck.get_path("src").is_relative_to(RuntimeCheck._home_dir))
-            print(RuntimeCheck._home_dir)
             print("Root privileges are required")
             sys.exit(1)
 

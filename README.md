@@ -1,7 +1,8 @@
 # Ryzen Mobile Limiter
 A simplified power management utility for laptops with AMD Ryzen APU.
 ## Acknowledgements
-This project relies on [FlyGoat/RyzenAdj](https://github.com/FlyGoat/RyzenAdj) for functionality and wouldn't be possible without its existence.
+This project relies on [FlyGoat/RyzenAdj](https://github.com/FlyGoat/RyzenAdj) for functionality and wouldn't be possible without its existence. No modifications have been conducted on this dependency for this project.
+*Copyright (C) 2018-2019 [FlyGoat](https://github.com/FlyGoat). Licensed under the [GNU Lesser General Public License v3.0 (LGPL-3.0)](https://www.gnu.org/licenses/lgpl-3.0.en.html#license-text)*
 ## ⚠️ Disclaimer ⚠️
 > [!WARNING]
 > Manipulation of hardware power registers may cause system instability. Use at your own risk!
@@ -66,6 +67,16 @@ Clone this repository:
 
     git clone https://github.com/AndyMars8/RyzenMobileLimiter.git
     cd RyzenMobileLimiter
+Clone the RyzenAdj repository and build it:
+
+    git clone https://github.com/FlyGoat/RyzenAdj.git
+    rm -r win32
+    mkdir build && cd build
+    cmake -D CMAKE_BUILD_TYPE=Release ..
+    make
+Copy libryzenadj.so to this repository's source directory:
+
+    cp libryzenadj.so ../../src/ryzenm_limit/
 Test run the daemon:
 
     sudo ./ryzenm-limit start
@@ -82,23 +93,17 @@ On a separate terminal, run a command to check if the daemon has successfully pr
     [INFO] yyyy-mm-dd hh:mm:ss - Successfully set fast_limit to 35W
     [INFO] yyyy-mm-dd hh:mm:ss - Successfully set slow_limit to 35W
 
-If you wish for these values to persist, keep the daemon running.
+If you wish for these values to persist, keep the daemon running. These values can be changed anytime using ```./ryzenm-limit [options]```.
 ## Installation
 ### Linux
-After following the setup instructions above, Ryzen Mobile Limiter can be installed by copying the following files/directories to their respective directories in the root file system:
-
-    sudo cp ryzenm-limit /usr/local/bin/
-    sudo cp -r src/ /usr/local/src/ryzenm-limit/
-    sudo cp -r lib/ /usr/local/lib/ryzenm-limit/
-    sudo cp -r config/ /etc/ryzenm-limit/
-> Or simply run:
+Simply run:
 
     sudo make install
 > [!NOTE]
 > If entering ```sudo ryzenm-limit``` returns ```sudo: ryzenm-limit: command not found```, you'll need to add ```/usr/local/bin``` to ```secure_path```:
 
     sudo visudo
-> Or edit with a text editor of your choice (Example: nano):
+> Or edit using a text editor of your choice (Example: nano):
 
     sudo EDITOR=nano visudo
 Find these lines:
