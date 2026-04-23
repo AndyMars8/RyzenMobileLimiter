@@ -2,6 +2,7 @@
 A simplified power management utility for laptops with AMD Ryzen APU.
 ## Acknowledgements
 This project relies on [FlyGoat/RyzenAdj](https://github.com/FlyGoat/RyzenAdj) for functionality and wouldn't be possible without its existence. No modifications have been conducted on this dependency for this project.
+
 *Copyright (C) 2018-2019 [FlyGoat](https://github.com/FlyGoat). Licensed under the [GNU Lesser General Public License v3.0 (LGPL-3.0)](https://www.gnu.org/licenses/lgpl-3.0.en.html#license-text)*
 ## ⚠️ Disclaimer ⚠️
 > [!WARNING]
